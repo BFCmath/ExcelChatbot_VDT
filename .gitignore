@@ -1,0 +1,11 @@
+!data/example0.xlsx
+!data/example0.0.xlsx
+!data/example0.1.xlsx
+!data/example0.3.xlsx
+!data/example0.4.xlsx
+data
+progress/
+research/
+
+.env
+__pycache__/
