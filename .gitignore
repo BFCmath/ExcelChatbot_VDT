@@ -6,6 +6,6 @@
 data
 progress/
 research/
-
+report/
 .env
 __pycache__/

@@ -900,4 +900,181 @@ SCHEMA_ANALYSIS_PROMPT = """
         {excel_content}
         ### Name of Feature Rows
         {feature_name_content}
+"""
+
+# Prompt for file summary generation in multi-file system
+FILE_SUMMARY_PROMPT = """You are an expert **Metadata Summarizer and Data Analyst**. Your primary task is to generate a concise yet comprehensive summary of a file based *only* on its provided structural metadata. This summary will be used to create a rich 'fingerprint' of the file, enabling effective semantic search and retrieval to determine if the file is relevant to a user's natural language question.
+
+**Problem Description:**
+You will be dealing with **matrix-like tables** that possess both **hierarchical rows and hierarchical columns**, typical of complex spreadsheets. Your analysis and summary must be based **solely** on the structural metadata provided (filename, feature names, row/column hierarchies). You will **not** have access to the actual data values within the cells. The goal is to capture the essence of what data the file likely contains and how it's structured, focusing on elements that are key for understanding its content and relevance.
+
+**Output You Should Generate (A Structured Summary):**
+
+Please generate a summary that clearly addresses the following aspects. Be concise and ensure all information is derived strictly from the provided metadata:
+
+1.  **Overall Purpose/Domain:**
+    *   (1-2 sentences) Based on the filename, feature names (both row and column), and the overall structure, what is the primary subject, domain, or general purpose of this file? (e.g., "Financial performance tracking," "Student academic records management," "Product inventory and sales analysis").
+
+2.  **Time Aspect/Coverage:**
+    *   (1 sentence, if applicable) If discernible from the filename (e.g., "Q3_2023"), feature names (e.g., "Year," "Month"), or the hierarchical structure (e.g., time periods nested in columns/rows), describe the likely time period, frequency, or temporal nature of the data. If not apparent, state: "Time aspect not explicitly defined in metadata."
+
+3.  **Primary Row Entities & Breakdown:**
+    *  (Focus this) What are the main items, entities, or categories being detailed down the rows? Describe how they are hierarchically broken down, referencing the `Feature Rows` and `Row Structure`. (e.g., "Rows detail individual 'Products', categorized by 'Product Line' and then by specific 'Model'." or "Rows appear to list 'Employees', potentially grouped by 'Department' and then 'Team'.").
+
+4.  **Primary Column Metrics & Dimensions:**
+    *  (Focus this) What key metrics, attributes, or dimensions are presented across the columns? Describe how they are hierarchically structured, referencing the `Feature Cols` and `Col Structure`. (e.g., "Columns represent financial 'Metrics' like 'Revenue' and 'Cost', broken down 'Quarterly' and then 'Monthly'." or "Columns show different 'Assessment Types', then specific 'Test Scores' and 'Grades'.").
+
+5.  **Inferred Data Focus:**
+    *   (1 sentence) Based on the intersection of the row and column structures, what kind of specific information or data points do the cells likely represent? (e.g., "The file likely contains numerical sales figures for specific products over defined time periods." or "This file probably tracks qualitative performance ratings for employees against various competencies.").
+
+### **METADATA**
+File: {filename}
+
+Feature Rows: {feature_rows}
+Feature Cols: {feature_cols}
+
+Row Structure:
+{row_structure}
+
+Column Structure:
+{col_structure}
+
+Now, generate the summary:
+### **SUMMARY**
+"""
+
+# Prompt for separating multi-file queries
+QUERY_SEPARATOR_PROMPT = """You are an expert **Query Analyzer and Decomposer for Multi-File Environments**. Your primary mission is to take a user's natural language `User Query` and a list of `Available files and their summaries` and determine how the query maps to the available files.
+
+If the entire query can be answered by a single file, you will associate the query with that file.
+If different parts of the query relate to different files, or if the same part of a query could potentially be answered by multiple files (due to overlapping scope like different time periods for similar data), you must **decompose** the `User Query` into one or more `Separated Queries`. Each `Separated Query` should be a self-contained question targeted at a specific file that is most likely to contain the answer.
+
+**Problem Description:**
+Users often ask complex questions that might draw information from different datasets or perspectives. You are given summaries describing the content and structure of several files. Your task is to:
+1.  **Analyze the User Query:** Understand the entities, metrics, timeframes, and intent expressed.
+2.  **Match with File Summaries:** Compare the query's components against the `Overall Purpose/Domain`, `Time Aspect/Coverage`, `Primary Row Entities & Breakdown`, `Primary Column Metrics & Dimensions`, and `Inferred Data Focus` of each file summary.
+3.  **Determine Relevance and Specificity:**
+    *   If a query part clearly maps to only one file, target that file.
+    *   If a query part could be answered by multiple files (e.g., "coffee prices" when you have "coffee prices 2023" and "coffee prices 2024" files, and the query doesn't specify a year), create separate queries for each potentially relevant file, *retaining the original intent of that query part*.
+    *   If distinct, independent parts of a complex query map to different files, create separate, focused queries for each part, targeted at their respective files.
+4.  **Formulate Separated Queries:** Each separated query should be a rephrasing or a direct segment of the original user query that makes sense in the context of the target file. It should be answerable by that specific file.
+
+**Input You Will Receive:**
+
+### FILE SUMMARY
+
+### User Query
+
+**Output You Should Generate:**
+
+1.  **`Thinking`**:
+    *   Briefly explain your overall understanding of the `User Query`.
+    *   For each part of the `User Query` (or the whole query if it's simple), detail which file(s) you considered and why you selected (or didn't select) them based on their summaries.
+    *   Explain your reasoning for separating the query if you did, or for keeping it whole. Highlight any ambiguities (like unspecified time) and how you handled them by potentially targeting multiple files.
+
+2.  **`Separated Query`**:
+    *   A list of "filename - query_segment" pairs.
+    *   If the query is not separated, this will be a single entry.
+    *   Each `query_segment` should be the natural language question intended for that specific `filename`.
+
+**Examples:**
+### FILE SUMMARY
+Filename: example1.xlsx
+Content:
+1.  **Overall Purpose/Domain:** The file appears to contain data related to geographical areas (cities, districts, wards) broken down by gender. It likely concerns demographic information or statistics related to population distribution by gender across specific locations in Vietnam.
+2.  **Time Aspect/Coverage:** Time aspect not explicitly defined in metadata.
+3.  **Primary Row Entities & Breakdown:** Rows detail geographical locations, starting with 'Thành Phố' (City), then categorized by 'Phân loại' (Category), further broken down by 'Quận' (District), and finally by 'Phường' (Ward). 
+4.  **Primary Column Metrics & Dimensions:** Columns represent 'Giới tính' (Gender), specifically detailing 'Nam' (Male) and 'Nữ' (Female).
+5.  **Inferred Data Focus:** The file likely contains data points (e.g., counts, percentages, or other statistics) related to gender within specific geographical areas (wards, districts, cities).
+
+Filename: example2.xlsx
+Content:
+1.  **Overall Purpose/Domain:** This file likely tracks international trade data for coffee, specifically focusing on export prices. The domain is related to commodity pricing and international trade statistics for coffee.        
+2.  **Time Aspect/Coverage:** The data explicitly covers the year 2023.
+3.  **Primary Row Entities & Breakdown:** Rows detail different types of 'Cà phê' (Coffee), categorized hierarchically by 'Loại' (Quality/Type), 'Xuất Khẩu' (Export Region), and finally by specific 'Nước' (Country).
+4.  **Primary Column Metrics & Dimensions:** Columns represent 'Giá 2023' (Price 2023), specifically broken down into 'Lẻ' (Retail) and 'Sĩ' (Wholesale) prices.
+5.  **Inferred Data Focus:** The cells likely contain specific 'Giá' (Price) values (Retail or Wholesale) for different types of 'Cà phê' (Coffee) exported to various 'Nước' (Countries) during 2023.
+
+Filename: example3.xlsx
+Content:
+1.  **Overall Purpose/Domain:** Based on the features 'Cà phê', 'Loại', 'Nhập Khẩu ', 'Thời gian', and 'Thu nhập', the file likely concerns the analysis of coffee types and origins segmented by time periods and consumer income levels.
+2.  **Time Aspect/Coverage:** The column structure includes 'Thời gian' broken down into 'Hè' and 'Đông', indicating a seasonal temporal coverage.
+3.  **Primary Row Entities & Breakdown:** Rows detail various 'Cà phê' types, including 'Cà phê thường', 'Cà phê Chồn', 'Cà phê Đen', and 'Cà phê Đậm'. These are hierarchically broken down by 'Loại' (Type) and 'Nhập Khẩu ' (Origin), specifying origins like Việt Nam, Brazil, Ý, and Mỹ.
+4.  **Primary Column Metrics & Dimensions:** Columns represent dimensions 'Thời gian' and 'Thu nhập'. 'Thời gian' is broken down into 'Hè' and 'Đông', while 'Thu nhập' is categorized into 'Thấp', 'Trung Bình', and 'Cao'.
+5.  **Inferred Data Focus:** The file likely contains data points describing or quantifying aspects of specific coffee types/origins within defined seasonal periods and across different consumer income brackets.
+
+Filename: example4.xlsx
+Content:
+1.  **Overall Purpose/Domain:** This file likely tracks international trade data for coffee, specifically focusing on export prices. The domain is related to commodity pricing and international trade statistics for coffee.        
+2.  **Time Aspect/Coverage:** The data explicitly covers the year 2024.
+3.  **Primary Row Entities & Breakdown:** Rows detail different types of 'Cà phê' (Coffee), categorized hierarchically by 'Loại' (Quality/Type), 'Xuất Khẩu' (Export Region), and finally by specific 'Nước' (Country).
+4.  **Primary Column Metrics & Dimensions:** Columns represent 'Giá', specifically broken down into 'Lẻ' (Retail) and 'Sĩ' (Wholesale) prices.
+5.  **Inferred Data Focus:** The cells likely contain specific 'Giá' (Price) values (Retail or Wholesale) for different types of 'Cà phê' (Coffee) exported to various 'Nước' (Countries) during 2024.
+
+**Input Example 1:**
+### User Query
+"Cho tôi biết có bao nhiêu nữ trong thành phố hồ chí minh"
+
+### Thinking
+The user query asks for the number of females in Ho Chi Minh City. File 'example1.xlsx' summary indicates it contains demographic data by gender and location, including cities. This file is directly relevant to the entire query
+
+### Seperated Query
+example1.xlsx - Cho tôi biết có bao nhiêu nữ trong thành phố hồ chí minh
+
+
+
+**Input Example 2:**
+### User Query
+"Cho tôi biết có bao nhiêu nữ và nam trong quận 1, và có bao nhiêu nam trong quận 2 phường 14"
+
+### Thinking
+The user query has two distinct parts: 1) number of females and males in District 1, and 2) number of males in Ward 14 of District 2. Both parts relate to demographic information by gender and specific administrative units (district, ward). File 'example1.xlsx' matches this data type. Since both parts can be answered by the same file but are distinct requests, they can remain as sub-parts of a query directed to example1.xlsx, or treated as conceptually separate but still targeting the same file. For clarity, I will separate them but assign both to example1.xlsx if the underlying system processes them sequentially for the same file. However, your output format asks for 'filename - query_segment'. If the intent is for the downstream agent to handle these sequentially if from the same file, the original phrasing is better. Let's assume the downstream agent is smart. The initial prompt implied 'example1.xlsx - Cho tôi biết có bao nhiêu nữ và nam trong thành phố hồ chí minh' and 'example2.xlsx - Cho tôi biết có bao nhiêu nam trong quận 2 phường 14'. This was a typo in the user's example output, it should be example1.xlsx for both if they come from the same conceptual source. I will assume it should be example1.xlsx for both based on the file content. The query targets demographic data at district and ward levels, which 'example1.xlsx' covers. The two parts are distinct information requests about different locations within the scope of 'example1.xlsx'.
+
+### Seperated Query
+example1.xlsx - Cho tôi biết có bao nhiêu nữ và nam trong quận 1
+example1.xlsx - Cho tôi biết có bao nhiêu nam trong quận 2 phường 14
+
+**Input Example 3:**
+### User Query
+"Cà phê đen có giá sĩ khoảng bao nhiêu"
+
+### Thinking
+The user asks for the wholesale price of black coffee. The query doesn't specify a year. File 'example2.xlsx' contains coffee export prices for 2023, including wholesale. File 'example4.xlsx' contains coffee export prices for 2024, also including wholesale. Both files are potentially relevant due to the unspecified time. Therefore, the query should be directed to both files to cover all possibilities.
+
+### Separated Query
+example2.xlsx - Cà phê đen có giá sĩ khoảng bao nhiêu
+example4.xlsx - Cà phê đen có giá sĩ khoảng bao nhiêu
+
+**Input Example 4:**
+### User Query: 
+"giá cà phê"
+
+### Thinking
+The user asks for 'coffee prices'. File 'example2.xlsx' explicitly covers 'Giá 2023' (Price 2023). File 'example4.xlsx' explicitly covers 'Giá' (Price) for 2024. File 'example3.xlsx' summary mentions coffee types, time, and income, but its 'Inferred Data Focus' does not suggest it contains direct price information, rather descriptive data. Therefore, 'example2.xlsx' and 'example4.xlsx' are the relevant files for 'giá cà phê'
+
+###Separated Query
+example2.xlsx - giá cà phê
+example4.xlsx - giá cà phê
+
+
+**Input Example 5:**
+### User Query
+"số lượng nam ở hà nội và đà nẵng, số lượng cà phê mỹ nhập khẩu từ brazil và cà phê loại tốt thường thu hút bao nhiêu người thu nhập cao"
+
+### Thinking
+The user query has three distinct parts: \n1. 'số lượng nam ở hà nội và đà nẵng': This concerns demographic data (number of males by city). File 'example1.xlsx' summary indicates it covers gender by location (cities).\n2. 'số lượng cà phê mỹ nhập khẩu từ brazil': This concerns coffee import origins. File 'example3.xlsx' summary indicates rows detail coffee by 'Nhập Khẩu ' (Origin), including Brazil and Mỹ (USA).\n3. 'cà phê loại tốt thường thu hút bao nhiêu người thu nhập cao': This links coffee type with consumer income. File 'example3.xlsx' summary indicates columns include 'Thu nhập' (Income) categories and rows detail coffee types. \nTherefore, the query needs to be split and targeted accordingly.
+
+### Separated Query
+example1.xlsx - số lượng nam ở hà nội và đà nẵng
+example3.xlsx - số lượng cà phê mỹ nhập khẩu từ brazil
+example3.xlsx - cà phê loại tốt thường thu hút bao nhiêu người thu nhập cao
+
+Now, handle the below information and decompose the query:
+### FILE SUMMARY
+{files_context}
+
+### User Query
+"{query}"
+
+### Thinking
 """ 
