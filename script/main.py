@@ -7,7 +7,9 @@ import openpyxl
 from preprocess import clean_unnamed_header, fill_undefined_sequentially, forward_fill_column_nans
 from utils import read_file, get_feature_name_content, format_nested_dict_for_llm
 from metadata import get_number_of_row_header, convert_df_headers_to_nested_dict, convert_df_rows_to_nested_dict
-from llm import get_schema, get_feature_names, process_natural_language_query
+from llm import get_schema, get_feature_names, single_agent, splitter
+from utils import format_row_dict_for_llm, format_col_dict_for_llm
+import json
 import dotenv
 dotenv.load_dotenv()
 
@@ -34,27 +36,47 @@ df = forward_fill_column_nans(df,feature_name_result["feature_rows"])
 
 row_dict = convert_df_rows_to_nested_dict(df, feature_name_result["feature_rows"])
 col_dict = convert_df_headers_to_nested_dict(df, feature_name_result["feature_cols"])
+
 feature_cols = feature_name_result["feature_cols"]
 feature_rows = feature_name_result["feature_rows"]
-
+    # Format dictionaries using the new formatting functions
+row_structure = format_row_dict_for_llm(row_dict, feature_rows)
+col_structure = format_col_dict_for_llm(col_dict)
+print(col_structure)
 print("=" * 50)
 print("Excel Chatbot Ready!")
 print("=" * 50)
 print("Commands:")
 print("- Enter your query in natural language")
+print("- Type 'single' to use single agent mode")
+print("- Type 'splitter' to use multi-agent splitter mode")
 print("- Type 'sanity check' to see data structure")
 print("- Type 'exit' or 'quit' to stop")
 print("=" * 50)
 
+# Default mode
+current_mode = "splitter"
+print(f"Current mode: {current_mode}")
+
 while True:
     try:
         # Get user input
-        query = input("\nEnter your query: ").strip()
+        query = input(f"\n[{current_mode}] Enter your query: ").strip()
         
         # Check for exit commands
         if query.lower() in ['exit', 'quit', 'q']:
             print("Goodbye!")
             break
+            
+        # Check for mode switch commands
+        if query.lower() == 'single':
+            current_mode = "single"
+            print(f"Switched to {current_mode} agent mode")
+            continue
+        elif query.lower() == 'splitter':
+            current_mode = "splitter"
+            print(f"Switched to {current_mode} multi-agent mode")
+            continue
             
         # Check for sanity check command
         if query.lower() == 'sanity check':
@@ -66,11 +88,9 @@ while True:
             print(f"\nFeature Cols: {feature_cols}")
             
             print("\nRow Dictionary:")
-            import json
-            print(json.dumps(row_dict, ensure_ascii=False, indent=2))
-            
+            print(row_structure)
             print("\nColumn Dictionary:")
-            print(json.dumps(col_dict, ensure_ascii=False, indent=2))
+            print(col_structure)
             
             print("\n" + "="*50)
             continue
@@ -80,14 +100,15 @@ while True:
             print("Please enter a query.")
             continue
             
-        # Process the query
-        print(f"\nProcessing query: '{query}'")
+        # Process the query based on current mode
+        print(f"\nProcessing query: '{query}' using {current_mode} mode")
         print("-" * 30)
         
-        result = process_natural_language_query(query, feature_rows, feature_cols, row_dict, col_dict, llm)
+        if current_mode == "single":
+            result = single_agent(query, feature_rows, feature_cols, row_dict, col_dict, llm)
+        else:  # splitter mode
+            result = splitter(query, feature_rows, feature_cols, row_structure, col_structure, llm)
         
-        print("\nResult:")
-        print(result)
         print("-" * 30)
         
     except KeyboardInterrupt:

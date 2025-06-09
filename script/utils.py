@@ -134,50 +134,154 @@ def get_feature_name_content(excel_file_path, feature_names, similarity_threshol
     return feature_name_content, result
 
 
-def format_nested_dict_for_llm(nested_input_dict, initial_indent_level=0, indent_char="  "):
+def format_nested_dict_for_llm(nested_input_dict, feature_names=None, dict_type="row"):
     """
-    Converts a nested dictionary (which may contain lists as leaf collections)
-    into an indented string representation suitable for LLMs.
-
+    Formats nested dictionary for LLM with specific formatting based on type.
+    
     Args:
         nested_input_dict (dict): The nested dictionary to format.
-        initial_indent_level (int): The starting indentation level.
-        indent_char (str): The string to use for each indentation level.
-
-    Returns:
-        str: A multi-line string representing the nested structure.
-    """
-
-    # --- Recursive helper function ---
-    def _recursive_format_to_lines(current_item, current_level):
-        lines_output = []
-        current_indent_str = indent_char * current_level
-
-        if isinstance(current_item, dict):
-            if not current_item:
-                return [] 
-
-            for key in current_item.keys():
-                value = current_item[key]
-                
-                if isinstance(value, dict) and not value:
-                    lines_output.append(f"{current_indent_str}{key}")
-                else:
-                    lines_output.append(f"{current_indent_str}{key}:")
-                
-                sub_lines = _recursive_format_to_lines(value, current_level + 1)
-                lines_output.extend(sub_lines)
-                
-        elif isinstance(current_item, list):
-            for sub_item_in_list in current_item: 
-                lines_output.append(f"{current_indent_str}- {sub_item_in_list}")
-
-        return lines_output
-
-    if not isinstance(nested_input_dict, dict):
-        return str(nested_input_dict) 
-
-    all_formatted_lines = _recursive_format_to_lines(nested_input_dict, initial_indent_level)
+        feature_names (list): List of feature names for proper labeling.
+        dict_type (str): "row" for row hierarchy, "col" for column hierarchy.
     
-    return "\n".join(all_formatted_lines)
+    Returns:
+        str: A formatted string representation.
+    """
+    if dict_type == "row":
+        return format_row_dict_for_llm(nested_input_dict, feature_names)
+    else:
+        return format_col_dict_for_llm(nested_input_dict)
+
+
+def format_row_dict_for_llm(row_dict, feature_names):
+    """
+    Formats row dictionary in hierarchical format with feature name labels.
+    
+    Example output:
+    sản phẩm: cà phê
+        loại: cà phê đen
+            nguồn gốc: việt nam, brazil
+    """
+    if not row_dict or not feature_names:
+        return ""
+    
+    def format_level(data, feature_level, current_path="", indent_level=0):
+        lines = []
+        indent = "    " * indent_level
+        
+        if feature_level >= len(feature_names):
+            return lines
+            
+        feature_name = feature_names[feature_level]
+        
+        if isinstance(data, dict):
+            for key, value in data.items():
+                # Format the current level
+                lines.append(f"{indent}{feature_name}: {key}")
+                
+                # Recursively format next level
+                if isinstance(value, dict):
+                    sub_lines = format_level(value, feature_level + 1, 
+                                           current_path + f"/{key}", indent_level + 1)
+                    lines.extend(sub_lines)
+                elif isinstance(value, list):
+                    # This is the leaf level - format as comma-separated values
+                    if value and feature_level + 1 < len(feature_names):
+                        next_feature_name = feature_names[feature_level + 1]
+                        formatted_values = ", ".join([v for v in value])
+                        lines.append(f"{indent}    {next_feature_name}: {formatted_values}")
+        
+        return lines
+    
+    formatted_lines = format_level(row_dict, 0)
+    return "\n".join(formatted_lines)
+
+
+def format_col_dict_for_llm(col_dict):
+    """
+    Formats column dictionary in level-based format supporting unlimited hierarchical levels.
+    
+    Example output:
+    level_1: thời gian
+        level_2: năm 2024
+            level_3: quý 1
+                level_4: tháng 1, tháng 2, tháng 3
+            level_3: quý 2
+                level_4: tháng 4, tháng 5, tháng 6
+    level_1: đơn giá
+    """
+    if not col_dict:
+        return ""
+    
+    def format_level(data, level=1, indent_level=0):
+        """
+        Recursively format hierarchical column structure.
+        
+        Args:
+            data: Dictionary or other data structure to format
+            level: Current hierarchical level (1-based)
+            indent_level: Current indentation level for display
+            
+        Returns:
+            List of formatted lines
+        """
+        lines = []
+        indent = "    " * indent_level
+        level_name = f"level_{level}"
+        
+        if isinstance(data, dict):
+            if not data:
+                # Empty dict - this is a leaf node, don't add anything
+                return lines
+                
+            # Group items by whether they have sub-structure or are leaves
+            items_with_dict_subs = []
+            items_with_list_subs = []
+            leaf_items = []
+            
+            for key, value in data.items():
+                if isinstance(value, dict) and value:
+                    # Has dictionary sub-structure
+                    items_with_dict_subs.append((key, value))
+                elif isinstance(value, list) and value:
+                    # Has list sub-structure
+                    items_with_list_subs.append((key, value))
+                else:
+                    # Is a leaf (empty dict, empty list, None, or simple value)
+                    leaf_items.append(key)
+            
+            # Format leaf items first (if any) as comma-separated list
+            if leaf_items:
+                formatted_leaves = ", ".join([item for item in leaf_items])
+                lines.append(f"{indent}{level_name}: {formatted_leaves}")
+            
+            # Format items with dictionary sub-structure
+            for key, value in items_with_dict_subs:
+                lines.append(f"{indent}{level_name}: {key}")
+                sub_lines = format_level(value, level + 1, indent_level + 1)
+                lines.extend(sub_lines)
+            
+            # Format items with list sub-structure
+            for key, value in items_with_list_subs:
+                lines.append(f"{indent}{level_name}: {key}")
+                # Format list items as the next level
+                next_level_name = f"level_{level + 1}"
+                next_indent = "    " * (indent_level + 1)
+                formatted_list_items = ", ".join([item for item in value])
+                lines.append(f"{next_indent}{next_level_name}: {formatted_list_items}")
+        
+        return lines
+    
+    # Process top-level items
+    all_lines = []
+    for main_col, sub_structure in col_dict.items():
+        if isinstance(sub_structure, dict) and sub_structure:
+            # Has sub-structure - format hierarchically
+            all_lines.append(f"level_1: {main_col}")
+            sub_lines = format_level(sub_structure, level=2, indent_level=1)
+            all_lines.extend(sub_lines)
+        else:
+            # No sub-structure - just the main column
+            all_lines.append(f"level_1: {main_col}")
+    
+    return "\n".join(all_lines)
 
