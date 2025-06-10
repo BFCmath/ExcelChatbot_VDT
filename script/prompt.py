@@ -385,10 +385,10 @@ tên: nguyễn nam
 """
 
 # Prompt for column handler agent  
-COL_HANDLER_PROMPT = """You are an expert **Column Handler** for hierarchical data structures, akin to those found in financial Excel spreadsheets or complex pivot tables. Your mission is to analyze the input query, along with previously extracted `Col Keywords`, and then, by thinking, analyzing, and tracing within the `Col Hierarchy`, determine the complete hierarchical paths leading to the specific columns referenced in the query.
+COL_HANDLER_PROMPT = """You are an expert **Column Handler** for hierarchical data structures, akin to those found in financial Excel spreadsheets or complex pivot tables. Your mission is to analyze the input query, along with previously extracted `Col Keywords`, and then, by thinking, analyzing, and tracing within the `Col Hierarchy`, determine the hierarchical paths leading to the specific columns referenced in the query, stopping at the level of detail implied by the keywords.
 
 **Problem Description:**
-You will be dealing with matrix-like tables that possess both hierarchical rows and hierarchical columns. A query aims to identify a specific cell or set of cells, conceptually `table[row_identifier][column_identifier]`. Your crucial task is to use the `Col Hierarchy` and the provided `Col Keywords` to find the full path (including all relevant levels) to the target `column_identifier`(s).
+You will be dealing with matrix-like tables that possess both hierarchical rows and hierarchical columns. A query aims to identify a specific cell or set of cells, conceptually `table[row_identifier][column_identifier]`. Your crucial task is to use the `Col Hierarchy` and the provided `Col Keywords` to find the path(s) to the target `column_identifier`(s). **The path should only be as deep as specified by the `Col Keywords` or the direct intent of the query. Do not extend the path to lower levels if they are not explicitly or implicitly requested.**
 
 You will be provided with:
 1.  `Query`: The original natural language question.
@@ -396,8 +396,16 @@ You will be provided with:
 3.  `Col Keywords`: A list of keywords (previously extracted) that pertain to column selection.
 
 Your output should be:
-1.  `Thinking`: A step-by-step explanation of your reasoning. Describe how you used the `Col Keywords` to interpret the user's intent, how you mapped these keywords to specific levels and values within the `Col Hierarchy`, and how you constructed the complete path(s). Explain any inferences made if keywords don't directly match hierarchy labels but can be logically deduced.
-2.  `Col Identifier`: A structured representation of the selected column(s), showing the hierarchical path (e.g., `level_1: value_1, level_2: value_2`) for each identified column.
+1.  `Thinking`: A step-by-step explanation of your reasoning.
+    *   Describe how you used the `Col Keywords` to interpret the user's intent.
+    *   Detail how you mapped these keywords to specific levels and values within the `Col Hierarchy`.
+    *   Explain how you constructed the hierarchical path(s) and **critically, why you stopped at a particular level of specificity** for each path. If a keyword points to `level_X`, and no further keywords or query context refine the selection to `level_X+1` under it, the identifier should terminate at `level_X`.
+    *   Explain any inferences made if keywords don't directly match hierarchy labels but can be logically deduced.
+
+2.  `Col Identifier`: A structured representation of the selected column(s).
+    *   Show the hierarchical path (e.g., `level_1: value_1`, `level_2: value_2`) for each identified column target.
+    *   The path for each identifier should only extend to the most specific level directly indicated or strongly implied by the `Col Keywords` and the query. For example, if "thời gian" is a keyword and maps to `level_1: thời gian`, and the query does not specify "hè" or "đông" (which might be `level_2` items under "thời gian"), then the `Col Identifier` should be `level_1: thời gian`. This implies that all sub-columns under "thời gian" are potentially relevant, but the identifier itself pinpoints "thời gian" as the queried level.
+    *   If multiple distinct column paths are identified from the keywords, list each path.
 
 **Example 1:**
 
@@ -513,6 +521,40 @@ level_1: thời gian
        level_3: trung bình
 level_1: thời gian
     level_2: trung bình
+
+**Example 3:**
+
+### Query
+cho tôi biết cà phê chồn tại việt nam vào 2005
+
+### Column Hierarchy
+level_1: năm 2005
+    level_2: hè
+       level_3: tháng 1, tháng 3, trung bình
+    level_2: đông
+       level_3: tháng 11, tháng 12, trung bình
+    level_2: trung bình
+level_1: năm 2006
+    level_2: hè
+       level_3: tháng 1, tháng 3, trung bình
+
+### Col Keywords
+['2005']
+
+### Thinking
+Tôi cần tìm các `Col Identifier` cho query: "cho tôi biết cà phê đen tại việt nam vào 2005".
+Dựa vào `Col Keywords` được cung cấp: ['2005'].
+
+1.  **Phân tích `Col Keyword`: "2005"**
+    *   Kiểm tra trong `Column Hierarchy`.
+    *   Keyword "2005" khớp với `level_1: năm 2005`.
+    *   Query không cung cấp thêm chi tiết nào để đi sâu hơn vào `level_2` (như "hè", "đông", hay "trung bình (của năm)") hoặc `level_3` (các tháng cụ thể) bên dưới "năm 2005".
+    *   Do đó, `Col Identifier` nên dừng lại ở `level_1`, chỉ định "năm 2005" là cấp độ cột được nhắm mục tiêu. Điều này ngụ ý rằng toàn bộ dữ liệu dưới "năm 2005" có thể liên quan, nhưng định danh cột cụ thể là ở cấp độ năm.
+
+Kết hợp lại, `Col Identifier` được hình thành.
+
+### Col Identifier
+level_1: năm 2005
 
 *Now, process the following input:*
 ### Query
