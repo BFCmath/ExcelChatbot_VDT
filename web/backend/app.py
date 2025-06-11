@@ -181,10 +181,10 @@ async def upload_files(
             
             # Process the file
             logger.info(f"Starting file processing for: {file_location}")
-            await process_file_async(conv, file_location)
-            processed_files.append(safe_filename)
+            await process_file_async(conv, file_location, file.filename)
+            processed_files.append(file.filename)
             
-            logger.info(f"Successfully processed file: {safe_filename}")
+            logger.info(f"Successfully processed file: {file.filename}")
             
         except Exception as e:
             import traceback
@@ -308,10 +308,10 @@ async def save_file_async(file: UploadFile, file_location: str):
     # Run file I/O in thread pool
     await asyncio.get_event_loop().run_in_executor(None, save_file)
 
-async def process_file_async(conversation, file_location: str):
+async def process_file_async(conversation, file_location: str, original_filename: str = None):
     """Process file asynchronously."""
     def process_file():
-        conversation.process_file(file_location)
+        conversation.process_file(file_location, original_filename)
     
     # Run processing in thread pool
     await asyncio.get_event_loop().run_in_executor(None, process_file)

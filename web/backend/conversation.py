@@ -21,26 +21,27 @@ class Conversation:
         logger.info(f"Created new conversation: {self.id}")
 
     def get_processed_files(self):
-        """Returns the list of filenames processed in this conversation."""
+        """Returns the list of original filenames processed in this conversation."""
         try:
-            return [f.filename for f in self.processor.file_metadata.values()]
+            return [f.original_filename for f in self.processor.file_metadata.values()]
         except Exception as e:
             logger.error(f"Error getting processed files for conversation {self.id}: {e}")
             return []
 
-    def process_file(self, file_path: str):
+    def process_file(self, file_path: str, original_filename: str = None):
         """
         Process an uploaded file and extract its metadata.
         
         Args:
             file_path (str): Path to the uploaded file
+            original_filename (str): Original filename before sanitization
             
         Raises:
             ValueError: If file processing fails
         """
         try:
-            logger.info(f"Processing file {file_path} for conversation {self.id}")
-            self.processor.extract_file_metadata(file_path)
+            logger.info(f"Processing file {file_path} (original: {original_filename}) for conversation {self.id}")
+            self.processor.extract_file_metadata(file_path, original_filename)
             logger.info(f"Successfully processed file {file_path} for conversation {self.id}")
         except Exception as e:
             import traceback

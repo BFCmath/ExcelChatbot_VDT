@@ -38,9 +38,10 @@ dotenv.load_dotenv(dotenv_path=dotenv_path)
 class FileMetadata:
     """Stores metadata for a processed file."""
     
-    def __init__(self, file_path):
+    def __init__(self, file_path, original_filename=None):
         self.file_path = file_path
-        self.filename = Path(file_path).name
+        self.filename = Path(file_path).name  # sanitized filename for internal use
+        self.original_filename = original_filename or self.filename  # display name
         self.df = None
         self.feature_name_result = None
         self.row_structure = None
@@ -73,12 +74,12 @@ class MultiFileProcessor:
                 temperature=0.0
             )
     
-    def extract_file_metadata(self, file_path):
+    def extract_file_metadata(self, file_path, original_filename=None):
         """Extract and store metadata for a single file."""
         # Initialize LLM if needed
         self.initialize_llm()
         
-        metadata = FileMetadata(file_path)
+        metadata = FileMetadata(file_path, original_filename)
         
         try:
             logger.info(f"Extracting metadata for: {file_path}")
@@ -135,7 +136,7 @@ class MultiFileProcessor:
     def generate_file_summary(self, metadata):
         """Generate LLM summary for a file's metadata."""
         summary_prompt = FILE_SUMMARY_PROMPT.format(
-            filename=metadata.filename,
+            filename=metadata.original_filename,
             feature_rows=metadata.feature_name_result['feature_rows'],
             feature_cols=metadata.feature_name_result['feature_cols'],
             row_structure=metadata.row_structure,
@@ -147,20 +148,24 @@ class MultiFileProcessor:
         summary = response.content.strip()
         return summary
     
-    def process_multiple_files(self, file_paths):
+    def process_multiple_files(self, file_paths, original_filenames=None):
         """Process multiple files and extract metadata."""
         logger.info("Starting multi-file metadata extraction")
         
-        for file_path in file_paths:
+        if original_filenames is None:
+            original_filenames = [None] * len(file_paths)
+        
+        for i, file_path in enumerate(file_paths):
+            original_filename = original_filenames[i] if i < len(original_filenames) else None
             # Always extract metadata, no caching
-            self.extract_file_metadata(file_path)
+            self.extract_file_metadata(file_path, original_filename)
         
         logger.info("Multi-file metadata extraction complete")
 
     def get_all_file_summaries(self):
         """Returns a formatted string of all file summaries."""
         return "\n\n".join(
-            f"Filename: {Path(fp).name}\nContent:\n{md.summary}"
+            f"Filename: {md.original_filename}\nContent:\n{md.summary}"
             for fp, md in self.file_metadata.items() if md.summary
         )
 
@@ -198,8 +203,8 @@ class MultiFileProcessor:
                 
                 # Find the full path for the filename
                 full_path = None
-                for fp in self.file_metadata.keys():
-                    if Path(fp).name == filename:
+                for fp, metadata in self.file_metadata.items():
+                    if metadata.original_filename == filename:
                         full_path = fp
                         break
                 
@@ -245,14 +250,14 @@ class MultiFileProcessor:
                 table_info = self.post_processor.extract_hierarchical_table_info(df_result)
                 
                 result_entry = {
-                    "filename": Path(file_path).name,
+                    "filename": self.file_metadata[file_path].original_filename,
                     "query": sub_query,
                     "success": True,
                     "table_info": table_info
                 }
             else:
                 result_entry = {
-                    "filename": Path(file_path).name,
+                    "filename": self.file_metadata[file_path].original_filename,
                     "query": sub_query,
                     "success": False,
                     "message": "No matching data found.",
