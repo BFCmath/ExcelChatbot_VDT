@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Chatbot - GPT-like Interface</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-table"></i> Excel Chatbot</h2>
+                <button id="new-conversation-btn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Conversation
+                </button>
+            </div>
+            
+            <div class="conversations-list">
+                <div class="conversations-section">
+                    <h3>Recent Conversations</h3>
+                    <div id="conversations-container">
+                        <!-- Conversations will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-content">
+            <div class="chat-header">
+                <div class="conversation-info">
+                    <h3 id="current-conversation-title">New Conversation</h3>
+                    <span id="current-conversation-id" class="conversation-id"></span>
+                </div>
+                <div class="chat-actions">
+                    <button id="upload-file-btn" class="btn btn-secondary">
+                        <i class="fas fa-upload"></i> Upload Excel File
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div id="messages-container" class="messages-container">
+                    <div class="welcome-message">
+                        <div class="welcome-content">
+                            <i class="fas fa-table welcome-icon"></i>
+                            <h2>Welcome to Excel Chatbot</h2>
+                            <p>Upload an Excel file and start asking questions about your data!</p>
+                            <div class="example-queries">
+                                <h4>Try asking:</h4>
+                                <ul>
+                                    <li>"What's the total sum of column A?"</li>
+                                    <li>"Show me the top 5 rows"</li>
+                                    <li>"What columns are available?"</li>
+                                    <li>"Find all rows where column B > 100"</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div id="uploaded-files" class="uploaded-files"></div>
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="message-input" 
+                            placeholder="Ask me anything about your Excel data..."
+                            rows="1"
+                        ></textarea>
+                        <button id="send-btn" class="send-btn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Upload Modal -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload Excel File</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area" id="upload-area">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <p>Drag and drop your Excel file here, or click to browse</p>
+                    <input type="file" id="file-input" accept=".xlsx,.xls" hidden>
+                    <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">
+                        Choose File
+                    </button>
+                </div>
+                <div id="upload-progress" class="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <p>Uploading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Processing your request...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

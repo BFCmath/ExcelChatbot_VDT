@@ -9,3 +9,5 @@ research/
 report/
 .env
 __pycache__/
+
+*/uploads/*
