@@ -526,7 +526,12 @@ function formatResponse(result) {
     }
     
     if (typeof result === 'object') {
-        // Handle structured data
+        // Handle new structured query response format
+        if (result.success !== undefined && result.results) {
+            return formatQueryResults(result);
+        }
+        
+        // Handle legacy structured data
         if (result.answer) {
             return result.answer;
         }
@@ -545,28 +550,183 @@ function formatResponse(result) {
     return String(result);
 }
 
+function formatQueryResults(response) {
+    if (!response.success) {
+        return `<div class="error-message">Error: ${response.error || 'Unknown error'}</div>`;
+    }
+
+    let html = '<div class="query-results">';
+    
+    if (response.results && response.results.length > 0) {
+        response.results.forEach(result => {
+            html += `<div class="result-section">`;
+            html += `<h4>File: ${result.filename}</h4>`;
+            html += `<p><strong>Query:</strong> ${result.query}</p>`;
+            
+            if (result.success && result.table_info) {
+                html += createHierarchicalHtmlTable(result.table_info, result.filename);
+            } else {
+                html += `<p class="no-data">${result.message || 'No data found'}</p>`;
+            }
+            
+            html += `</div>`;
+        });
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function createHierarchicalHtmlTable(tableInfo, filename) {
+    if (!tableInfo || !tableInfo.data_rows || tableInfo.data_rows.length === 0) {
+        return '<p class="no-data">No data to display</p>';
+    }
+
+    const { has_multiindex, header_matrix, final_columns, data_rows, row_count, col_count } = tableInfo;
+    
+    let html = '<div class="table-container">';
+    html += `<div class="table-info">Showing ${row_count} rows × ${col_count} columns`;
+    if (row_count > 100) {
+        html += ` (first 100 rows displayed)`;
+    }
+    html += '</div>';
+    
+    html += '<table class="data-table hierarchical-table">';
+    
+    // Generate header section with proper rowspan and colspan
+    html += '<thead>';
+    
+    if (has_multiindex && header_matrix && header_matrix.length > 1) {
+        // Multi-level headers with merged cells (both rowspan and colspan)
+        // Track cells that should be skipped due to rowspan from previous levels
+        const skipMatrix = Array(header_matrix.length).fill(null).map(() => Array(col_count).fill(false));
+        
+        header_matrix.forEach((level, levelIndex) => {
+            html += '<tr class="header-level-' + levelIndex + '">';
+            
+            let currentPosition = 0;
+            level.forEach(header => {
+                // Skip positions that are covered by rowspan from previous levels
+                while (currentPosition < col_count && skipMatrix[levelIndex][currentPosition]) {
+                    currentPosition++;
+                }
+                
+                if (currentPosition >= col_count) return;
+                
+                // Only render cells that should be displayed (not hidden by spanning)
+                const colspanAttr = header.colspan > 1 ? ` colspan="${header.colspan}"` : '';
+                const rowspanAttr = header.rowspan > 1 ? ` rowspan="${header.rowspan}"` : '';
+                const headerText = header.text || '';
+                
+                // Determine header class based on level and spanning
+                let levelClass = 'sub-level-header';
+                if (levelIndex === 0) {
+                    levelClass = 'top-level-header';
+                }
+                if (header.rowspan > 1) {
+                    levelClass += ' vertical-span';
+                }
+                if (header.colspan > 1) {
+                    levelClass += ' horizontal-span';
+                }
+                
+                html += `<th class="${levelClass}"${colspanAttr}${rowspanAttr}>${escapeHtml(headerText)}</th>`;
+                
+                // Mark positions as occupied due to this cell's span
+                for (let r = levelIndex; r < levelIndex + header.rowspan && r < skipMatrix.length; r++) {
+                    for (let c = currentPosition; c < currentPosition + header.colspan && c < col_count; c++) {
+                        if (r > levelIndex) { // Don't mark the current cell as skipped
+                            skipMatrix[r][c] = true;
+                        }
+                    }
+                }
+                
+                currentPosition += header.colspan;
+            });
+            
+            html += '</tr>';
+        });
+    } else {
+        // Simple single-level headers
+        html += '<tr>';
+        final_columns.forEach(col => {
+            html += `<th>${escapeHtml(col)}</th>`;
+        });
+        html += '</tr>';
+    }
+    
+    html += '</thead>';
+    
+    // Generate body section
+    html += '<tbody>';
+    const maxRows = Math.min(data_rows.length, 100);
+    
+    for (let i = 0; i < maxRows; i++) {
+        const row = data_rows[i];
+        html += '<tr>';
+        
+        row.forEach((cell, colIndex) => {
+            const cellValue = formatCellValue(cell);
+            html += `<td>${cellValue}</td>`;
+        });
+        
+        html += '</tr>';
+    }
+    
+    html += '</tbody>';
+    html += '</table>';
+    html += '</div>';
+    
+    return html;
+}
+
+function formatCellValue(value) {
+    if (value === null || value === undefined) {
+        return '<span class="null-value">—</span>';
+    }
+    
+    if (typeof value === 'number') {
+        // Format numbers with proper locale
+        if (Number.isInteger(value)) {
+            return value.toLocaleString();
+        } else {
+            return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        }
+    }
+    
+    if (typeof value === 'string') {
+        // Escape HTML and handle long strings
+        const escaped = escapeHtml(value);
+        if (escaped.length > 50) {
+            return `<span title="${escaped}">${escaped.substring(0, 47)}...</span>`;
+        }
+        return escaped;
+    }
+    
+    return escapeHtml(String(value));
+}
+
 function formatTableData(data) {
     if (!Array.isArray(data) || data.length === 0) {
         return 'No data found.';
     }
     
-    // For small datasets, create a simple table format
-    if (data.length <= 10 && typeof data[0] === 'object') {
-        const headers = Object.keys(data[0]);
-        let table = headers.join(' | ') + '\n';
-        table += headers.map(() => '---').join(' | ') + '\n';
-        
-        data.forEach(row => {
-            table += headers.map(header => String(row[header] || '')).join(' | ') + '\n';
-        });
-        
-        return '```\n' + table + '```';
-    }
+    // Convert simple array data to table format for legacy support
+    // This is a fallback for simple data structures
+    const tableInfo = {
+        has_multiindex: false,
+        header_matrix: [[{
+            text: 'Data',
+            colspan: 1,
+            position: 0
+        }]],
+        final_columns: ['Data'],
+        data_rows: data.map(item => [item]),
+        row_count: data.length,
+        col_count: 1
+    };
     
-    // For larger datasets, provide summary
-    return `Found ${data.length} records. Here's a sample:\n\n` + 
-           JSON.stringify(data.slice(0, 3), null, 2) + 
-           (data.length > 3 ? '\n\n... and more' : '');
+    return createHierarchicalHtmlTable(tableInfo, 'data');
 }
 
 function addMessageToUI(content, type, animate = true) {
@@ -588,10 +748,27 @@ function addMessageToUI(content, type, animate = true) {
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
     
-    // Handle code blocks and formatting safely
-    if (content.includes('```')) {
-        messageContent.innerHTML = formatCodeBlocks(escapeHtml(content));
+    // Handle different content types
+    if (type === 'user') {
+        // For user messages, always escape HTML for security
+        messageContent.textContent = content;
+    } else if (type === 'bot') {
+        // For bot messages, check if it's HTML content or plain text
+        if (content.includes('<div class="query-results">') || 
+            content.includes('<table') || 
+            content.includes('<div class="error-message">') ||
+            content.includes('<div class="info-message">')) {
+            // This is HTML content from our table rendering, render as HTML
+            messageContent.innerHTML = content;
+        } else if (content.includes('```')) {
+            // Handle code blocks
+            messageContent.innerHTML = formatCodeBlocks(escapeHtml(content));
+        } else {
+            // Plain text content, escape HTML
+            messageContent.textContent = content;
+        }
     } else {
+        // Fallback for other types
         messageContent.textContent = content;
     }
     

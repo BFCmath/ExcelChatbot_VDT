@@ -207,34 +207,32 @@ def create_column_tuples(df, col_paths):
         max_levels = 1
     
     for path in col_paths:
-        # Create tuple by filling levels
-        tuple_elements = ['Header'] * max_levels
-        
-        # Fill in the values from the path
-        for level_num, value in path.items():
-            if level_num <= max_levels:
-                tuple_elements[level_num - 1] = value
-        
-        # Search for matching column in df.columns
-        target_tuple = tuple(tuple_elements)
-        
-        # Find the best matching column
-        best_match = None
+        # Find ALL matching columns for this path (not just the first one)
         if isinstance(df.columns, pd.MultiIndex):
             for col_tuple in df.columns:
                 # Check if this column matches our pattern
                 matches = True
-                for i, (target_val, actual_val) in enumerate(zip(tuple_elements, col_tuple)):
-                    if target_val != 'Header' and target_val != actual_val:
-                        matches = False
-                        break
+                for level_num, value in path.items():
+                    if level_num <= max_levels:
+                        level_index = level_num - 1  # Convert to 0-based index
+                        if level_index < len(col_tuple):
+                            actual_val = col_tuple[level_index]
+                            if value != actual_val:
+                                matches = False
+                                break
+                        else:
+                            matches = False
+                            break
                 
                 if matches:
-                    best_match = col_tuple
-                    break
-        
-        if best_match:
-            column_tuples.append(best_match)
+                    column_tuples.append(col_tuple)
+        else:
+            # Handle simple (non-MultiIndex) columns
+            if 1 in path:  # level_1 is the only level for simple columns
+                target_value = path[1]
+                for col in df.columns:
+                    if str(col) == target_value:
+                        column_tuples.append(col)
     
     return column_tuples
 

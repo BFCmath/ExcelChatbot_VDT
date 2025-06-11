@@ -1,8 +1,3 @@
-!data/example0.xlsx
-!data/example0.0.xlsx
-!data/example0.1.xlsx
-!data/example0.3.xlsx
-!data/example0.4.xlsx
 data
 progress/
 research/
@@ -13,3 +8,5 @@ __pycache__/
 */uploads/*
 
 web/backend/uploads/*
+web/backend/logs/app.log
+web/logs/app.log

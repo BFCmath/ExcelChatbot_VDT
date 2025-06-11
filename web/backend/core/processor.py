@@ -19,14 +19,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 import dotenv
 
-# Import existing modules
 from .preprocess import clean_unnamed_header, fill_undefined_sequentially, forward_fill_column_nans
+from .llm import splitter, get_feature_names
+from .extract_df import render_filtered_dataframe
+from .postprocess import TablePostProcessor
 from .utils import get_feature_name_content, format_row_dict_for_llm, format_col_dict_for_llm
 from .metadata import get_number_of_row_header, convert_df_headers_to_nested_dict, convert_df_rows_to_nested_dict
-from .llm import get_feature_names, splitter
-from .extract_df import render_filtered_dataframe
 from .prompt import FILE_SUMMARY_PROMPT, QUERY_SEPARATOR_PROMPT
-from . import config
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -37,40 +36,41 @@ dotenv.load_dotenv(dotenv_path=dotenv_path)
 
 
 class FileMetadata:
-    """Container for file metadata and processed structures."""
+    """Stores metadata for a processed file."""
     
     def __init__(self, file_path):
         self.file_path = file_path
         self.filename = Path(file_path).name
-        self.feature_names = None
-        self.feature_name_result = None
-        self.number_of_row_header = None
         self.df = None
-        self.row_dict = None
-        self.col_dict = None
+        self.feature_name_result = None
         self.row_structure = None
         self.col_structure = None
         self.summary = None
-        self.processed_at = None
+        self.feature_names = None
+        self.number_of_row_header = None
+        self.row_dict = None
+        self.col_dict = None
 
 
 class MultiFileProcessor:
-    """Handles processing of multiple Excel files."""
+    """Handles processing of multiple Excel files and queries."""
     
     def __init__(self):
         self.file_metadata = {}
         self.llm = None
+        self.post_processor = TablePostProcessor()
     
     def initialize_llm(self):
-        """Initialize the LLM model."""
-        if not self.llm:
+        """Initialize LLM if not already done."""
+        if self.llm is None:
+            api_key = os.getenv('GOOGLE_API_KEY_1')
+            if not api_key:
+                raise ValueError("GOOGLE_API_KEY environment variable is required")
+            
             self.llm = ChatGoogleGenerativeAI(
-                model=config.LLM_MODEL,
-                google_api_key=config.GOOGLE_API_KEY,
-                temperature=0,
-                max_tokens=None,
-                timeout=None,
-                max_retries=2,
+                model="gemini-1.5-flash",
+                google_api_key=api_key,
+                temperature=0.0
             )
     
     def extract_file_metadata(self, file_path):
@@ -98,84 +98,40 @@ class MultiFileProcessor:
             metadata.number_of_row_header = get_number_of_row_header(file_path)
             logger.info(f"Number of row headers: {metadata.number_of_row_header}")
             
-            # Load and preprocess DataFrame with enhanced error handling
+            # Load and preprocess DataFrame
             logger.info(f"Step 4: Loading DataFrame for {file_path}")
-            try:
-                # Primary method: Standard pandas read_excel
-                logger.info(f"Reading Excel with header range: {list(range(0, metadata.number_of_row_header))}")
-                metadata.df = pd.read_excel(
-                    file_path, 
-                    header=list(range(0, metadata.number_of_row_header)),
-                    engine='openpyxl'
-                )
-                logger.info(f"DataFrame loaded successfully. Shape: {metadata.df.shape}")
-                logger.info(f"DataFrame columns: {metadata.df.columns.tolist()}")
-                logger.info(f"DataFrame columns type: {type(metadata.df.columns)}")
-            except Exception as primary_error:
-                logger.warning(f"Primary Excel read failed for {file_path}: {primary_error}")
-                try:
-                    # Fallback method: Try with different parameters
-                    import openpyxl
-                    from io import BytesIO
-                    
-                    # Read as binary and process with openpyxl directly
-                    with open(file_path, 'rb') as f:
-                        file_content = f.read()
-                    
-                    file_buffer = BytesIO(file_content)
-                    metadata.df = pd.read_excel(
-                        file_buffer,
-                        header=list(range(0, metadata.number_of_row_header)),
-                        engine='openpyxl'
-                    )
-                    logger.info(f"Successfully read {file_path} using fallback method")
-                except Exception as fallback_error:
-                    logger.error(f"Both Excel read methods failed for {file_path}")
-                    logger.error(f"Primary error: {primary_error}")
-                    logger.error(f"Fallback error: {fallback_error}")
-                    raise fallback_error
+            metadata.df = pd.read_excel(
+                file_path, 
+                header=list(range(0, metadata.number_of_row_header)),
+                engine='openpyxl'
+            )
+            logger.info(f"DataFrame loaded successfully. Shape: {metadata.df.shape}")
             
             logger.info(f"Step 5: Preprocessing DataFrame for {file_path}")
             metadata.df = clean_unnamed_header(metadata.df, metadata.number_of_row_header)
-            logger.info(f"After clean_unnamed_header: Shape {metadata.df.shape}")
-            
             metadata.df = fill_undefined_sequentially(metadata.df, metadata.feature_name_result["feature_rows"])
-            logger.info(f"After fill_undefined_sequentially: Shape {metadata.df.shape}")
-            
             metadata.df = forward_fill_column_nans(metadata.df, metadata.feature_name_result["feature_rows"])
-            logger.info(f"After forward_fill_column_nans: Shape {metadata.df.shape}")
             
             # Create nested dictionaries
             logger.info(f"Step 6: Creating nested dictionaries for {file_path}")
-            logger.info(f"Feature rows for row_dict: {metadata.feature_name_result['feature_rows']}")
             metadata.row_dict = convert_df_rows_to_nested_dict(df_input=metadata.df, hierarchy_columns_list=metadata.feature_name_result["feature_rows"])
-            logger.info(f"Row dict created successfully")
-            
-            logger.info(f"Feature cols for col_dict: {metadata.feature_name_result['feature_cols']}")
             metadata.col_dict = convert_df_headers_to_nested_dict(df=metadata.df, column_names_list=metadata.feature_name_result["feature_cols"])
-            logger.info(f"Col dict created successfully")
             
-            # Format structures for LLM
+            # Generate structures for LLM
             metadata.row_structure = format_row_dict_for_llm(metadata.row_dict, metadata.feature_name_result["feature_rows"])
             metadata.col_structure = format_col_dict_for_llm(metadata.col_dict)
             
             # Generate summary
             metadata.summary = self.generate_file_summary(metadata)
             
-            metadata.processed_at = datetime.now().isoformat()
-            
-            # Store the metadata in memory
+            # Store metadata
             self.file_metadata[file_path] = metadata
-            
-            logger.info(f"Successfully extracted metadata for: {file_path}")
-            return metadata
+            logger.info(f"Successfully processed {file_path}")
             
         except Exception as e:
-            import traceback
-            logger.error(f"Error processing {file_path}: {e}")
-            logger.error(f"Full traceback:\n{traceback.format_exc()}")
+            logger.error(f"Failed to process {file_path}: {e}")
             raise
-    
+
     def generate_file_summary(self, metadata):
         """Generate LLM summary for a file's metadata."""
         summary_prompt = FILE_SUMMARY_PROMPT.format(
@@ -186,25 +142,18 @@ class MultiFileProcessor:
             col_structure=metadata.col_structure
         )
         
-        try:
-            message = HumanMessage(content=summary_prompt)
-            response = self.llm.invoke([message])
-            summary = response.content.strip()
-            return summary
-        except Exception as e:
-            logger.error(f"LLM error generating summary for {metadata.filename}: {e}")
-            return f"File contains {len(metadata.feature_name_result['feature_rows'])} row features and {len(metadata.feature_name_result['feature_cols'])} column features."
+        message = HumanMessage(content=summary_prompt)
+        response = self.llm.invoke([message])
+        summary = response.content.strip()
+        return summary
     
     def process_multiple_files(self, file_paths):
         """Process multiple files and extract metadata."""
         logger.info("Starting multi-file metadata extraction")
         
         for file_path in file_paths:
-            try:
-                # Always extract metadata, no caching
-                self.extract_file_metadata(file_path)
-            except Exception as e:
-                logger.error(f"Failed to process {file_path}: {e}")
+            # Always extract metadata, no caching
+            self.extract_file_metadata(file_path)
         
         logger.info("Multi-file metadata extraction complete")
 
@@ -225,13 +174,9 @@ class MultiFileProcessor:
             query=query
         )
         
-        try:
-            message = HumanMessage(content=separator_prompt)
-            response = self.llm.invoke([message])
-            return self.parse_separator_response(response.content)
-        except Exception as e:
-            logger.error(f"LLM error in query separation: {e}")
-            return []
+        message = HumanMessage(content=separator_prompt)
+        response = self.llm.invoke([message])
+        return self.parse_separator_response(response.content)
 
     def parse_separator_response(self, response):
         """Parse the response from the query separator agent."""
@@ -279,9 +224,13 @@ class MultiFileProcessor:
         """
         assignments = self.separate_query(query)
         if not assignments:
-            return {"error": "Could not determine which file to query."}
+            return {
+                "success": False,
+                "error": "Could not determine which file to query.",
+                "results": []
+            }
         
-        results = {}
+        results = []
         for assignment in assignments:
             file_path = assignment['file_path']
             sub_query = assignment['query']
@@ -290,14 +239,34 @@ class MultiFileProcessor:
             
             # Process this specific query against the specific file
             df_result = self.process_single_file_query(assignment)
-            
-            # Store result as JSON
+            # Return the DataFrame as-is to preserve hierarchical structure
             if df_result is not None and not df_result.empty:
-                results[f"{Path(file_path).name} - {sub_query}"] = df_result.to_json(orient='records', force_ascii=False)
+                # Use post-processor to preserve hierarchical structure for frontend rendering
+                table_info = self.post_processor.extract_hierarchical_table_info(df_result)
+                
+                result_entry = {
+                    "filename": Path(file_path).name,
+                    "query": sub_query,
+                    "success": True,
+                    "table_info": table_info
+                }
             else:
-                 results[f"{Path(file_path).name} - {sub_query}"] = "No matching data found."
+                result_entry = {
+                    "filename": Path(file_path).name,
+                    "query": sub_query,
+                    "success": False,
+                    "message": "No matching data found.",
+                    "data": []
+                }
+            
+            results.append(result_entry)
 
-        return results
+        return {
+            "success": True,
+            "query": query,
+            "total_files_processed": len(results),
+            "results": results
+        }
 
     def process_single_file_query(self, assignment):
         """
@@ -333,19 +302,15 @@ class MultiFileProcessor:
         
         # Render the filtered DataFrame
         if result and isinstance(result, dict) and 'row_selection' in result and 'col_selection' in result:
-            try:
-                filtered_df = render_filtered_dataframe(
-                    df=metadata.df,
-                    row_selection=result['row_selection'],
-                    col_selection=result['col_selection'],
-                    feature_rows=metadata.feature_name_result['feature_rows']
-                )
-                return filtered_df
-            except Exception as e:
-                logger.error(f"Error rendering table: {e}")
-                logger.debug(f"Raw result - Row Selection: {result['row_selection']}")
-                logger.debug(f"Raw result - Col Selection: {result['col_selection']}")
-                return None
+            filtered_df = render_filtered_dataframe(
+                df=metadata.df,
+                row_selection=result['row_selection'],
+                col_selection=result['col_selection'],
+                feature_rows=metadata.feature_name_result['feature_rows']
+            )
+            print(filtered_df) # do not delete this
+            return filtered_df
         else:
             logger.warning("WARNING: Splitter did not return a valid result.")
             return None
+        

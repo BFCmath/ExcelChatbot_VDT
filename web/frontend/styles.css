@@ -628,4 +628,448 @@ body {
         opacity: 1;
         transform: scale(1);
     }
+}
+
+/* Table Rendering Styles */
+.query-results {
+    margin: 20px 0;
+}
+
+.query-summary {
+    background-color: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.query-summary h4 {
+    color: #10a37f;
+    font-size: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.query-summary p {
+    color: #cccccc;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.query-summary p:last-child {
+    margin-bottom: 0;
+}
+
+.file-result {
+    background-color: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.file-header {
+    background-color: #333;
+    padding: 16px;
+    border-bottom: 1px solid #444;
+}
+
+.file-header h5 {
+    color: #ffffff;
+    font-size: 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.file-header .sub-query {
+    color: #888;
+    font-size: 14px;
+    font-style: italic;
+    margin: 0;
+}
+
+.table-container {
+    padding: 16px;
+}
+
+.table-info {
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.record-count {
+    color: #888;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background-color: #1e1e1e;
+}
+
+.excel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 600px;
+}
+
+.excel-table thead {
+    background-color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.excel-table th {
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: #ffffff;
+    border-bottom: 2px solid #444;
+    border-right: 1px solid #444;
+    white-space: nowrap;
+}
+
+.excel-table th:last-child {
+    border-right: none;
+}
+
+.excel-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.excel-table tbody tr:hover {
+    background-color: #2a2a2a;
+}
+
+.excel-table tbody tr:nth-child(even) {
+    background-color: #1a1a1a;
+}
+
+.excel-table tbody tr:nth-child(odd) {
+    background-color: #1e1e1e;
+}
+
+.excel-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #333;
+    border-right: 1px solid #333;
+    color: #cccccc;
+    vertical-align: top;
+    max-width: 200px;
+    word-wrap: break-word;
+}
+
+.excel-table td:last-child {
+    border-right: none;
+}
+
+.null-value {
+    color: #666;
+    font-style: italic;
+}
+
+.table-pagination {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #333;
+}
+
+.pagination-info {
+    color: #888;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.no-data-message {
+    padding: 40px;
+    text-align: center;
+    color: #888;
+}
+
+.no-data-message i {
+    font-size: 32px;
+    margin-bottom: 12px;
+    color: #555;
+}
+
+/* Update existing error/success messages for consistency */
+.message .error-message {
+    background-color: #2a1f1f;
+    border: 1px solid #ff4444;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.message .error-message i {
+    color: #ff4444;
+    font-size: 18px;
+}
+
+.message .error-message span {
+    color: #ff9999;
+}
+
+.info-message {
+    background-color: #1f2a2a;
+    border: 1px solid #10a37f;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.info-message i {
+    color: #10a37f;
+    font-size: 18px;
+}
+
+.info-message span {
+    color: #cccccc;
+}
+
+/* Responsive table design */
+@media (max-width: 768px) {
+    .table-wrapper {
+        font-size: 12px;
+    }
+    
+    .excel-table th,
+    .excel-table td {
+        padding: 8px 6px;
+    }
+    
+    .query-summary,
+    .file-header,
+    .table-container {
+        padding: 12px;
+    }
+}
+
+/* Hierarchical Table Styles for Multi-Level Headers */
+.hierarchical-table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.hierarchical-table th {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9em;
+    vertical-align: middle;
+    position: relative;
+}
+
+.hierarchical-table .top-level-header {
+    background: linear-gradient(to bottom, #e9ecef 0%, #ced4da 100%);
+    font-weight: 700;
+    font-size: 1em;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #adb5bd;
+}
+
+.hierarchical-table .sub-level-header {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.hierarchical-table td {
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+    text-align: right;
+    vertical-align: middle;
+    background-color: #fff;
+    color: #495057;
+}
+
+.hierarchical-table tbody tr:nth-child(even) {
+    background-color: rgba(0, 123, 255, 0.03);
+}
+
+.hierarchical-table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.hierarchical-table tbody tr:hover td {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Enhanced header hover effects */
+.hierarchical-table th:hover {
+    background: linear-gradient(to bottom, #e9ecef 0%, #ced4da 100%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.hierarchical-table .top-level-header:hover {
+    background: linear-gradient(to bottom, #ced4da 0%, #adb5bd 100%);
+}
+
+/* Cell text alignment for different data types */
+.hierarchical-table td[data-type="number"] {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}
+
+.hierarchical-table td[data-type="text"] {
+    text-align: left;
+}
+
+.hierarchical-table td[data-type="center"] {
+    text-align: center;
+}
+
+/* Dark theme support for hierarchical tables */
+[data-theme="dark"] .hierarchical-table {
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .hierarchical-table th {
+    background: linear-gradient(to bottom, #495057 0%, #343a40 100%);
+    border-color: #6c757d;
+    color: #f8f9fa;
+}
+
+[data-theme="dark"] .hierarchical-table .top-level-header {
+    background: linear-gradient(to bottom, #343a40 0%, #212529 100%);
+    border-bottom-color: #495057;
+}
+
+[data-theme="dark"] .hierarchical-table td {
+    background-color: #2c3034;
+    border-color: #495057;
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .hierarchical-table tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .hierarchical-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .hierarchical-table tbody tr:hover td {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive design for hierarchical tables */
+@media (max-width: 768px) {
+    .hierarchical-table {
+        font-size: 0.8em;
+    }
+    
+    .hierarchical-table th,
+    .hierarchical-table td {
+        padding: 6px 4px;
+    }
+    
+    .hierarchical-table .top-level-header {
+        font-size: 0.85em;
+    }
+    
+    /* Stack headers vertically on very small screens */
+    @media (max-width: 480px) {
+        .hierarchical-table thead tr {
+            display: block;
+            border: 1px solid #dee2e6;
+        }
+        
+        .hierarchical-table thead th {
+            display: block;
+            border: none;
+            border-bottom: 1px solid #dee2e6;
+            text-align: left;
+            padding: 8px;
+        }
+    }
+}
+
+/* Print styles for hierarchical tables */
+@media print {
+    .hierarchical-table {
+        border-collapse: collapse;
+        page-break-inside: auto;
+    }
+    
+    .hierarchical-table th,
+    .hierarchical-table td {
+        border: 1px solid #000;
+        padding: 4px;
+        font-size: 10pt;
+    }
+    
+    .hierarchical-table tbody tr {
+        page-break-inside: avoid;
+    }
+}
+
+/* Enhanced styles for merged cells */
+.hierarchical-table .vertical-span {
+    background: linear-gradient(to bottom, #e3f2fd 0%, #bbdefb 100%);
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+    border-left: 3px solid #2196f3;
+    box-shadow: inset 2px 0 4px rgba(33, 150, 243, 0.1);
+}
+
+.hierarchical-table .horizontal-span {
+    background: linear-gradient(to right, #f3e5f5 0%, #e1bee7 100%);
+    font-weight: 700;
+    text-align: center;
+    border-top: 3px solid #9c27b0;
+    box-shadow: inset 0 2px 4px rgba(156, 39, 176, 0.1);
+}
+
+.hierarchical-table .vertical-span.horizontal-span {
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 50%, #a5d6a7 100%);
+    border: 3px solid #4caf50;
+    font-weight: 800;
+    box-shadow: inset 0 0 8px rgba(76, 175, 80, 0.2);
+}
+
+/* Dark theme support for merged cells */
+[data-theme="dark"] .hierarchical-table .vertical-span {
+    background: linear-gradient(to bottom, #1a237e 0%, #303f9f 100%);
+    border-left-color: #3f51b5;
+    box-shadow: inset 2px 0 4px rgba(63, 81, 181, 0.2);
+}
+
+[data-theme="dark"] .hierarchical-table .horizontal-span {
+    background: linear-gradient(to right, #4a148c 0%, #7b1fa2 100%);
+    border-top-color: #9c27b0;
+    box-shadow: inset 0 2px 4px rgba(156, 39, 176, 0.2);
+}
+
+[data-theme="dark"] .hierarchical-table .vertical-span.horizontal-span {
+    background: linear-gradient(135deg, #1b5e20 0%, #388e3c 50%, #4caf50 100%);
+    border-color: #4caf50;
+    box-shadow: inset 0 0 8px rgba(76, 175, 80, 0.3);
 } 
