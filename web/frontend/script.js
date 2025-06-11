@@ -25,7 +25,7 @@ function initializeElements() {
         'conversations-container', 'messages-container', 'uploaded-files',
         'current-conversation-title', 'current-conversation-id',
         'upload-modal', 'upload-area', 'file-input', 'upload-progress',
-        'loading-overlay'
+        'loading-overlay', 'scroll-to-bottom-btn'
     ];
     
     elements.forEach(id => {
@@ -35,24 +35,27 @@ function initializeElements() {
 
 // Setup all event listeners
 function setupEventListeners() {
-    // New conversation button
+    // Navigation events
     elementsCache['new-conversation-btn'].addEventListener('click', createNewConversation);
-    
-    // Upload file button
     elementsCache['upload-file-btn'].addEventListener('click', openUploadModal);
     
-    // Send message button
-    elementsCache['send-btn'].addEventListener('click', sendMessage);
-    
-    // Message input
+    // Input events
     elementsCache['message-input'].addEventListener('input', handleInputChange);
     elementsCache['message-input'].addEventListener('keydown', handleKeyDown);
+    elementsCache['send-btn'].addEventListener('click', sendMessage);
     
-    // Upload modal
+    // Modal events
     setupUploadModal();
     
-    // File input
-    elementsCache['file-input'].addEventListener('change', handleFileSelect);
+    // Auto-resize textarea
+    elementsCache['message-input'].addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+    });
+    
+    // Scroll to bottom button events
+    elementsCache['scroll-to-bottom-btn'].addEventListener('click', scrollToBottom);
+    elementsCache['messages-container'].addEventListener('scroll', handleScroll);
 }
 
 // Handle input changes
@@ -91,6 +94,9 @@ function setupUploadModal() {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeUploadModal();
     });
+    
+    // File input event
+    elementsCache['file-input'].addEventListener('change', handleFileSelect);
     
     // Drag and drop events
     uploadArea.addEventListener('click', () => elementsCache['file-input'].click());
@@ -396,13 +402,25 @@ function updateProgress(percent) {
 
 function updateUploadedFiles() {
     const container = elementsCache['uploaded-files'];
+    const messagesContainer = elementsCache['messages-container'];
     container.innerHTML = '';
     
     if (!currentConversationId || !conversations[currentConversationId]?.files) {
+        // Remove has-files class when no files
+        messagesContainer.classList.remove('has-files');
         return;
     }
     
-    conversations[currentConversationId].files.forEach((file, index) => {
+    const files = conversations[currentConversationId].files;
+    
+    // Add or remove has-files class based on file presence
+    if (files.length > 0) {
+        messagesContainer.classList.add('has-files');
+    } else {
+        messagesContainer.classList.remove('has-files');
+    }
+    
+    files.forEach((file, index) => {
         const fileElement = document.createElement('div');
         fileElement.className = 'uploaded-file';
         fileElement.innerHTML = `
@@ -591,6 +609,8 @@ function createHierarchicalHtmlTable(tableInfo, filename) {
     }
     html += '</div>';
     
+    // Wrap the table in a table-wrapper for horizontal scrolling
+    html += '<div class="table-wrapper">';
     html += '<table class="data-table hierarchical-table">';
     
     // Generate header section with proper rowspan and colspan
@@ -675,7 +695,8 @@ function createHierarchicalHtmlTable(tableInfo, filename) {
     
     html += '</tbody>';
     html += '</table>';
-    html += '</div>';
+    html += '</div>'; // Close table-wrapper
+    html += '</div>'; // Close table-container
     
     return html;
 }
@@ -732,12 +753,15 @@ function formatTableData(data) {
 function addMessageToUI(content, type, animate = true) {
     const container = elementsCache['messages-container'];
     
+    // Check if user was at bottom before adding message
+    const wasAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+    
     // Remove welcome message if it exists
     const welcomeMessage = container.querySelector('.welcome-message');
     if (welcomeMessage) {
         welcomeMessage.remove();
     }
-    
+
     const messageElement = document.createElement('div');
     messageElement.className = `message ${type} ${animate ? 'fade-in' : ''}`;
     
@@ -776,7 +800,19 @@ function addMessageToUI(content, type, animate = true) {
     messageElement.appendChild(messageContent);
     
     container.appendChild(messageElement);
-    scrollToBottom();
+    
+    // Auto-scroll to bottom if user was at bottom, or for user messages
+    if (wasAtBottom || type === 'user') {
+        setTimeout(() => {
+            scrollToBottom();
+        }, 100); // Small delay to allow DOM update
+    } else {
+        // Show scroll-to-bottom button if user wasn't at bottom
+        const scrollBtn = elementsCache['scroll-to-bottom-btn'];
+        if (scrollBtn) {
+            scrollBtn.classList.add('show');
+        }
+    }
 }
 
 function escapeHtml(text) {
@@ -855,7 +891,35 @@ function showWelcomeMessage() {
 
 function scrollToBottom() {
     const container = elementsCache['messages-container'];
-    container.scrollTop = container.scrollHeight;
+    if (!container) return;
+    
+    // Smooth scroll to bottom
+    container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+    });
+    
+    // Hide the scroll to bottom button
+    const scrollBtn = elementsCache['scroll-to-bottom-btn'];
+    if (scrollBtn) {
+        scrollBtn.classList.remove('show');
+    }
+}
+
+function handleScroll() {
+    const container = elementsCache['messages-container'];
+    const scrollBtn = elementsCache['scroll-to-bottom-btn'];
+    
+    if (!container || !scrollBtn) return;
+    
+    // Show button if not at bottom (with more tolerance for fixed input)
+    const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+    
+    if (isAtBottom) {
+        scrollBtn.classList.remove('show');
+    } else {
+        scrollBtn.classList.add('show');
+    }
 }
 
 // UI state management

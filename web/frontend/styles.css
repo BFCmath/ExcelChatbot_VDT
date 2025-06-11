@@ -15,15 +15,19 @@ body {
 .app-container {
     display: flex;
     height: 100vh;
+    overflow: hidden; /* Prevent layout disruption from content overflow */
 }
 
 /* Sidebar Styles */
 .sidebar {
     width: 280px;
+    min-width: 280px; /* Prevent sidebar from shrinking */
+    max-width: 280px; /* Prevent sidebar from expanding */
     background-color: #1e1e1e;
     border-right: 1px solid #333;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Contain sidebar content */
 }
 
 .sidebar-header {
@@ -96,9 +100,13 @@ body {
 /* Main Content Styles */
 .main-content {
     flex: 1;
+    min-width: 0; /* Allow flex item to shrink smaller than content */
     display: flex;
     flex-direction: column;
     background-color: #1a1a1a;
+    position: relative;
+    height: 100vh;
+    overflow: hidden; /* Contain main content overflow */
 }
 
 .chat-header {
@@ -123,15 +131,29 @@ body {
 
 .chat-container {
     flex: 1;
+    min-width: 0; /* Allow flex item to shrink smaller than content */
     display: flex;
     flex-direction: column;
+    height: calc(100vh - 81px); /* Subtract header height */
+    overflow: hidden;
 }
 
 .messages-container {
     flex: 1;
+    min-width: 0; /* Allow flex item to shrink smaller than content */
     overflow-y: auto;
+    overflow-x: hidden; /* Hide horizontal overflow to prevent layout disruption */
     padding: 20px;
+    padding-bottom: 120px; /* Base space for input area */
     scroll-behavior: smooth;
+    min-height: 0;
+    max-width: 100%;
+    transition: padding-bottom 0.3s ease; /* Smooth transition */
+}
+
+/* Adjust padding when files are uploaded */
+.messages-container.has-files {
+    padding-bottom: 160px; /* Extra space when files are present */
 }
 
 /* Welcome Message */
@@ -199,9 +221,11 @@ body {
 
 /* Message Styles */
 .message {
-    margin-bottom: 20px;
     display: flex;
     gap: 12px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+    max-width: 100%;
 }
 
 .message-avatar {
@@ -227,11 +251,15 @@ body {
 
 .message-content {
     flex: 1;
+    min-width: 0; /* Allow flex item to shrink smaller than content */
     background-color: #2a2a2a;
-    padding: 16px;
     border-radius: 12px;
-    border: 1px solid #333;
-    line-height: 1.6;
+    padding: 16px;
+    position: relative;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: calc(100% - 60px);
+    overflow-x: auto;
 }
 
 .message.user .message-content {
@@ -257,7 +285,7 @@ body {
     background-color: #10a37f;
     color: #ffffff;
     padding: 8px 12px;
-    border-radius: 20px;
+    border-radius: 10px;
     margin-right: 8px;
     margin-bottom: 8px;
     font-size: 14px;
@@ -276,8 +304,14 @@ body {
 
 /* Chat Input Styles */
 .chat-input-container {
+    position: fixed;
+    bottom: 0;
+    left: 280px; /* Sidebar width */
+    right: 0;
     padding: 20px;
     border-top: 1px solid #333;
+    background-color: #1a1a1a;
+    z-index: 50;
 }
 
 .input-wrapper {
@@ -533,10 +567,13 @@ body {
 @media (max-width: 768px) {
     .sidebar {
         width: 100%;
-        position: absolute;
+        min-width: 100%;
+        max-width: 100%;
+        position: fixed;
+        top: 0;
         left: -100%;
-        z-index: 100;
         transition: left 0.3s ease;
+        z-index: 1000;
     }
     
     .sidebar.open {
@@ -544,7 +581,7 @@ body {
     }
     
     .app-container {
-        position: relative;
+        flex-direction: column;
     }
     
     .welcome-content h2 {
@@ -558,6 +595,60 @@ body {
     .modal-content {
         width: 95%;
         margin: 10% auto;
+    }
+    
+    /* Chat input and layout adjustments */
+    .chat-input-container {
+        left: 0; /* Full width on mobile */
+        right: 0;
+        padding: 15px;
+    }
+    
+    .messages-container {
+        padding-bottom: 100px; /* Adjust for smaller mobile input */
+    }
+    
+    .messages-container.has-files {
+        padding-bottom: 200px; /* Extra space when files are present on mobile */
+    }
+    
+    .main-content {
+        height: 100vh;
+    }
+    
+    .chat-container {
+        height: calc(100vh - 60px); /* Smaller header on mobile */
+    }
+    
+    /* Scroll to bottom button on mobile */
+    .scroll-to-bottom {
+        bottom: 120px;
+        right: 20px;
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+    }
+    
+    /* Table container adjustments for mobile */
+    .table-container {
+        max-height: 50vh;
+        padding: 12px;
+    }
+    
+    .table-wrapper {
+        max-height: 45vh;
+        font-size: 12px;
+    }
+    
+    .excel-table th,
+    .excel-table td {
+        padding: 8px 6px;
+    }
+    
+    .query-summary,
+    .file-header,
+    .table-container {
+        padding: 12px;
     }
 }
 
@@ -694,6 +785,9 @@ body {
 
 .table-container {
     padding: 16px;
+    max-width: 100%;
+    overflow: hidden; /* Contain within message boundaries */
+    max-height: 70vh;
 }
 
 .table-info {
@@ -701,6 +795,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .record-count {
@@ -713,9 +809,14 @@ body {
 
 .table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
     border: 1px solid #444;
     border-radius: 6px;
     background-color: #1e1e1e;
+    width: 100%;
+    max-height: 60vh;
+    margin: 0;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .excel-table {
@@ -871,70 +972,81 @@ body {
     border-collapse: collapse;
     border-spacing: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 100%; /* Fit within container, let wrapper handle scrolling */
+    min-width: 800px; /* Minimum width to trigger horizontal scrolling */
+    table-layout: auto;
 }
 
 .hierarchical-table th {
-    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid #dee2e6;
+    background: linear-gradient(to bottom, #3a3a3a 0%, #2a2a2a 100%);
+    border: 1px solid #444;
     padding: 12px 8px;
     text-align: center;
     font-weight: 600;
     font-size: 0.9em;
     vertical-align: middle;
     position: relative;
+    color: #ffffff;
+    white-space: nowrap;
+    min-width: 60px;
+    max-width: 300px; /* Increased from 200px for wider columns */
 }
 
 .hierarchical-table .top-level-header {
-    background: linear-gradient(to bottom, #e9ecef 0%, #ced4da 100%);
+    background: linear-gradient(to bottom, #444 0%, #333 100%);
     font-weight: 700;
     font-size: 1em;
-    color: #495057;
+    color: #ffffff;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #adb5bd;
+    border-bottom: 2px solid #555;
 }
 
 .hierarchical-table .sub-level-header {
-    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
-    color: #6c757d;
-    font-weight: 600;
+    background: linear-gradient(to bottom, #333 0%, #2a2a2a 100%);
+    color: #cccccc;
+    font-weight: 500;
+    font-size: 0.85em;
+    border-bottom: 1px solid #444;
 }
 
 .hierarchical-table td {
-    border: 1px solid #dee2e6;
-    padding: 8px 12px;
-    text-align: right;
-    vertical-align: middle;
-    background-color: #fff;
-    color: #495057;
+    border: 1px solid #444;
+    padding: 10px 8px;
+    text-align: left;
+    font-size: 0.9em;
+    vertical-align: top;
+    color: #cccccc;
+    background-color: #1e1e1e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px; /* Increased from 200px for wider columns */
+    word-wrap: break-word;
 }
 
 .hierarchical-table tbody tr:nth-child(even) {
-    background-color: rgba(0, 123, 255, 0.03);
+    background-color: #1a1a1a;
 }
 
 .hierarchical-table tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
+    background-color: #2a2a2a;
 }
 
 .hierarchical-table tbody tr:hover td {
-    background-color: rgba(0, 123, 255, 0.05);
+    background-color: #2a2a2a;
 }
 
-/* Enhanced header hover effects */
 .hierarchical-table th:hover {
-    background: linear-gradient(to bottom, #e9ecef 0%, #ced4da 100%);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #444;
 }
 
 .hierarchical-table .top-level-header:hover {
-    background: linear-gradient(to bottom, #ced4da 0%, #adb5bd 100%);
+    background: linear-gradient(to bottom, #555 0%, #444 100%);
 }
 
-/* Cell text alignment for different data types */
 .hierarchical-table td[data-type="number"] {
     text-align: right;
-    font-family: 'Courier New', monospace;
 }
 
 .hierarchical-table td[data-type="text"] {
@@ -945,69 +1057,50 @@ body {
     text-align: center;
 }
 
-/* Dark theme support for hierarchical tables */
-[data-theme="dark"] .hierarchical-table {
-    color: #e9ecef;
-}
-
-[data-theme="dark"] .hierarchical-table th {
-    background: linear-gradient(to bottom, #495057 0%, #343a40 100%);
-    border-color: #6c757d;
-    color: #f8f9fa;
-}
-
-[data-theme="dark"] .hierarchical-table .top-level-header {
-    background: linear-gradient(to bottom, #343a40 0%, #212529 100%);
-    border-bottom-color: #495057;
-}
-
-[data-theme="dark"] .hierarchical-table td {
-    background-color: #2c3034;
-    border-color: #495057;
-    color: #e9ecef;
-}
-
-[data-theme="dark"] .hierarchical-table tbody tr:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.02);
-}
-
-[data-theme="dark"] .hierarchical-table tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-[data-theme="dark"] .hierarchical-table tbody tr:hover td {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Responsive design for hierarchical tables */
+/* Responsive table design */
 @media (max-width: 768px) {
     .hierarchical-table {
-        font-size: 0.8em;
+        font-size: 12px;
     }
     
     .hierarchical-table th,
     .hierarchical-table td {
-        padding: 6px 4px;
+        padding: 8px 4px;
+        min-width: 40px;
+        max-width: 200px; /* Increased from 120px for mobile */
+        font-size: 11px;
     }
     
     .hierarchical-table .top-level-header {
-        font-size: 0.85em;
+        font-size: 12px;
+        padding: 10px 6px;
     }
     
-    /* Stack headers vertically on very small screens */
-    @media (max-width: 480px) {
-        .hierarchical-table thead tr {
-            display: block;
-            border: 1px solid #dee2e6;
-        }
-        
-        .hierarchical-table thead th {
-            display: block;
-            border: none;
-            border-bottom: 1px solid #dee2e6;
-            text-align: left;
-            padding: 8px;
-        }
+    .table-container {
+        padding: 8px;
+    }
+    
+    .table-info {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hierarchical-table thead tr {
+        font-size: 10px;
+    }
+    
+    .hierarchical-table thead th {
+        padding: 6px 3px;
+        font-size: 10px;
+        min-width: 30px;
+        max-width: 120px; /* Increased from 80px */
+    }
+    
+    .hierarchical-table td {
+        padding: 6px 3px;
+        font-size: 10px;
+        max-width: 120px; /* Increased from 80px */
     }
 }
 
@@ -1038,6 +1131,7 @@ body {
     vertical-align: middle;
     border-left: 3px solid #2196f3;
     box-shadow: inset 2px 0 4px rgba(33, 150, 243, 0.1);
+    color: #000000 !important; /* Black font for merge cells */
 }
 
 .hierarchical-table .horizontal-span {
@@ -1046,6 +1140,7 @@ body {
     text-align: center;
     border-top: 3px solid #9c27b0;
     box-shadow: inset 0 2px 4px rgba(156, 39, 176, 0.1);
+    color: #000000 !important; /* Black font for merge cells */
 }
 
 .hierarchical-table .vertical-span.horizontal-span {
@@ -1053,23 +1148,36 @@ body {
     border: 3px solid #4caf50;
     font-weight: 800;
     box-shadow: inset 0 0 8px rgba(76, 175, 80, 0.2);
+    color: #000000 !important; /* Black font for merge cells */
 }
 
-/* Dark theme support for merged cells */
-[data-theme="dark"] .hierarchical-table .vertical-span {
-    background: linear-gradient(to bottom, #1a237e 0%, #303f9f 100%);
-    border-left-color: #3f51b5;
-    box-shadow: inset 2px 0 4px rgba(63, 81, 181, 0.2);
+/* Scroll to bottom button */
+.scroll-to-bottom {
+    position: fixed;
+    bottom: 140px; /* Above the fixed input area */
+    right: 30px;
+    width: 48px;
+    height: 48px;
+    background-color: #10a37f;
+    border: none;
+    border-radius: 50%;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    z-index: 100;
+    display: none;
 }
 
-[data-theme="dark"] .hierarchical-table .horizontal-span {
-    background: linear-gradient(to right, #4a148c 0%, #7b1fa2 100%);
-    border-top-color: #9c27b0;
-    box-shadow: inset 0 2px 4px rgba(156, 39, 176, 0.2);
+.scroll-to-bottom:hover {
+    background-color: #0d8f6f;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
-[data-theme="dark"] .hierarchical-table .vertical-span.horizontal-span {
-    background: linear-gradient(135deg, #1b5e20 0%, #388e3c 50%, #4caf50 100%);
-    border-color: #4caf50;
-    box-shadow: inset 0 0 8px rgba(76, 175, 80, 0.3);
+.scroll-to-bottom.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 } 
