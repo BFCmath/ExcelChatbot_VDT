@@ -11,3 +11,5 @@ report/
 __pycache__/
 
 */uploads/*
+
+web/backend/uploads/*

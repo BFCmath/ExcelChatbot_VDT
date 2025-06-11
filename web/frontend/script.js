@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeElements();
     setupEventListeners();
     loadConversations();
-    createNewConversation();
+    initializeConversationState();
 });
 
 // Cache DOM elements for better performance
@@ -160,29 +160,61 @@ function createNewConversation() {
 }
 
 function switchToConversation(conversationId) {
-    currentConversationId = conversationId;
     const conversation = conversations[conversationId];
     
-    // Update UI
-    elementsCache['current-conversation-title'].textContent = conversation.title;
-    elementsCache['current-conversation-id'].textContent = `ID: ${conversationId}`;
-    
-    // Update conversations list
-    updateConversationsList();
-    
-    // Clear and load messages
-    clearMessages();
-    if (conversation.messages.length === 0) {
-        showWelcomeMessage();
-    } else {
-        conversation.messages.forEach(message => {
-            addMessageToUI(message.content, message.type, false);
-        });
+    if (!conversation) {
+        showError(`Conversation ${conversationId} not found`);
+        // Try to create a new conversation as fallback
+        createNewConversation();
+        return;
     }
     
-    // Update uploaded files and sync with backend
-    syncFilesWithBackend();
-    updateInputState();
+    // Validate conversation with backend before switching
+    fetch(`${API_BASE_URL}/conversations/${conversationId}/validate`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Conversation not found in backend`);
+            }
+            return response.json();
+        })
+        .then(() => {
+            // Conversation is valid, proceed with switch
+            currentConversationId = conversationId;
+            
+            // Update UI
+            elementsCache['current-conversation-title'].textContent = conversation.title;
+            elementsCache['current-conversation-id'].textContent = `ID: ${conversationId}`;
+            
+            // Update conversations list
+            updateConversationsList();
+            
+            // Clear and load messages
+            clearMessages();
+            if (conversation.messages.length === 0) {
+                showWelcomeMessage();
+            } else {
+                conversation.messages.forEach(message => {
+                    addMessageToUI(message.content, message.type, false);
+                });
+            }
+            
+            // Update uploaded files and sync with backend
+            syncFilesWithBackend();
+            updateInputState();
+        })
+        .catch(error => {
+            console.error(`Error switching to conversation ${conversationId}:`, error);
+            
+            // Remove invalid conversation from frontend
+            delete conversations[conversationId];
+            saveConversations();
+            updateConversationsList();
+            
+            showError(`Conversation expired or invalid. Creating a new one.`);
+            
+            // Create new conversation as fallback
+            createNewConversation();
+        });
 }
 
 function updateConversationsList() {
@@ -727,6 +759,65 @@ function loadConversations() {
             conversations = {};
         }
     }
+}
+
+// Initialize conversation state on app load
+function initializeConversationState() {
+    const conversationIds = Object.keys(conversations);
+    
+    if (conversationIds.length === 0) {
+        // No conversations exist, create a new one
+        createNewConversation();
+        return;
+    }
+    
+    // Validate existing conversations with backend
+    validateConversationsWithBackend()
+        .then(validConversations => {
+            if (validConversations.length === 0) {
+                // No valid conversations, create a new one
+                createNewConversation();
+            } else {
+                // Switch to the most recent valid conversation
+                const mostRecent = validConversations
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+                switchToConversation(mostRecent.id);
+            }
+        })
+        .catch(error => {
+            console.error('Error validating conversations:', error);
+            // Fallback: create a new conversation
+            createNewConversation();
+        });
+}
+
+// Validate conversations with backend
+async function validateConversationsWithBackend() {
+    const conversationIds = Object.keys(conversations);
+    const validConversations = [];
+    
+    for (const id of conversationIds) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/conversations/${id}/validate`);
+            if (response.ok) {
+                validConversations.push(conversations[id]);
+            } else {
+                // Remove invalid conversation from frontend state
+                console.log(`Removing invalid conversation: ${id}`);
+                delete conversations[id];
+            }
+        } catch (error) {
+            console.error(`Error validating conversation ${id}:`, error);
+            // Remove conversation that can't be validated
+            delete conversations[id];
+        }
+    }
+    
+    // Update localStorage with cleaned conversations
+    saveConversations();
+    updateConversationsList();
+    
+    return validConversations;
 }
 
 // Save conversations to localStorage

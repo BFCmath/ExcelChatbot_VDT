@@ -208,6 +208,25 @@ async def upload_files(
         all_processed_files_in_conversation=conv.get_processed_files()
     )
 
+@app.get("/conversations/{conversation_id}/validate")
+async def validate_conversation(conversation_id: str):
+    """Validate if a conversation exists in the backend."""
+    try:
+        # Validate conversation ID format
+        RequestValidator.validate_conversation_id(conversation_id)
+        
+        # Check if conversation exists (this will also trigger cleanup)
+        conv = conversation_manager.get_conversation(conversation_id)
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        return {"valid": True, "conversation_id": conversation_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error validating conversation {conversation_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @app.get("/conversations/{conversation_id}/files", response_model=FilesResponse)
 async def get_processed_files(conversation_id: str):
     """

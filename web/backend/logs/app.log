@@ -875,3 +875,267 @@
 2025-06-12 01:06:32,235 - core.processor - INFO - Using splitter agent to process query
 2025-06-12 01:06:42,307 - conversation - INFO - Successfully processed query for conversation e4740df2-ffba-45dc-b553-1e90d5727dfd
 2025-06-12 01:07:02,036 - core.config - INFO - Shutting down Excel Chatbot API
+2025-06-12 01:10:17,293 - core.config - INFO - Starting Excel Chatbot API
+2025-06-12 01:10:17,295 - core.config - INFO - Upload folder ready: D:\project\vdt\xlsx_chatbot\web\backend\uploads
+2025-06-12 01:10:20,099 - conversation - INFO - Created new conversation: 4b5f096f-4151-4d50-a7ae-8a4bedb1119f
+2025-06-12 01:10:20,101 - managers - INFO - Created conversation: 4b5f096f-4151-4d50-a7ae-8a4bedb1119f. Total conversations: 1
+2025-06-12 01:10:20,101 - core.config - INFO - Created conversation: 4b5f096f-4151-4d50-a7ae-8a4bedb1119f
+2025-06-12 01:18:13,252 - core.config - INFO - Shutting down Excel Chatbot API
+2025-06-12 01:18:18,857 - core.config - INFO - Starting Excel Chatbot API
+2025-06-12 01:18:18,858 - core.config - INFO - Upload folder ready: D:\project\vdt\xlsx_chatbot\web\backend\uploads
+2025-06-12 01:18:26,824 - core.config - INFO - Shutting down Excel Chatbot API
+2025-06-12 01:18:31,176 - core.config - INFO - Starting Excel Chatbot API
+2025-06-12 01:18:31,176 - core.config - INFO - Upload folder ready: D:\project\vdt\xlsx_chatbot\web\backend\uploads
+2025-06-12 01:18:36,016 - core.config - INFO - Starting Excel Chatbot API
+2025-06-12 01:18:36,017 - core.config - INFO - Upload folder ready: D:\project\vdt\xlsx_chatbot\web\backend\uploads
+2025-06-12 01:19:55,586 - managers - WARNING - WARNING: Conversation a8f2ac3b-b9b4-45bb-9d2d-9fe6a339528b not found
+2025-06-12 01:19:55,596 - managers - WARNING - WARNING: Conversation ac85384d-55bb-4bfd-928d-46877578228a not found
+2025-06-12 01:19:55,605 - managers - WARNING - WARNING: Conversation a4262837-60ac-4091-9362-1cfcb65e136c not found
+2025-06-12 01:19:55,613 - managers - WARNING - WARNING: Conversation 131f88c2-4f6f-48bd-a700-7fee156fd8f9 not found
+2025-06-12 01:19:55,619 - managers - WARNING - WARNING: Conversation 6fe70f3f-b1d2-4d1d-8ed6-e5f35ebebe0c not found
+2025-06-12 01:19:55,626 - managers - WARNING - WARNING: Conversation eb23a0ee-e10a-40ab-bc11-28fab1ee0341 not found
+2025-06-12 01:19:55,632 - managers - WARNING - WARNING: Conversation 47850cce-6c41-4717-94b9-a6430a640f0d not found
+2025-06-12 01:19:55,639 - managers - WARNING - WARNING: Conversation 744af346-f799-47ab-be2e-21d61be6b7af not found
+2025-06-12 01:19:55,644 - managers - WARNING - WARNING: Conversation e4740df2-ffba-45dc-b553-1e90d5727dfd not found
+2025-06-12 01:19:55,653 - managers - WARNING - WARNING: Conversation 4b5f096f-4151-4d50-a7ae-8a4bedb1119f not found
+2025-06-12 01:19:55,663 - conversation - INFO - Created new conversation: dbb9ac0d-00d2-4f38-bec4-345bd3adb34d
+2025-06-12 01:19:55,664 - managers - INFO - Created conversation: dbb9ac0d-00d2-4f38-bec4-345bd3adb34d. Total conversations: 1
+2025-06-12 01:19:55,664 - core.config - INFO - Created conversation: dbb9ac0d-00d2-4f38-bec4-345bd3adb34d
+2025-06-12 01:19:58,620 - conversation - INFO - Created new conversation: d228134b-109c-4bb6-94c8-739c88288325
+2025-06-12 01:19:58,621 - managers - INFO - Created conversation: d228134b-109c-4bb6-94c8-739c88288325. Total conversations: 2
+2025-06-12 01:19:58,621 - core.config - INFO - Created conversation: d228134b-109c-4bb6-94c8-739c88288325
+2025-06-12 01:20:12,456 - middleware - INFO - File validation passed: Doanh tác theo đối tác và nguồn.xlsx
+2025-06-12 01:20:12,457 - middleware - INFO - Filename sanitized: Doanh tác theo đối tác và nguồn.xlsx -> Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:12,457 - core.config - INFO - Processing file: Doanh tác theo đối tác và nguồn.xlsx -> Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:12,458 - core.config - INFO - File will be saved to: D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:12,462 - core.config - INFO - File saved successfully: D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx (38471 bytes)
+2025-06-12 01:20:12,463 - core.config - INFO - Starting file processing for: D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:12,463 - conversation - INFO - Processing file D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx for conversation dbb9ac0d-00d2-4f38-bec4-345bd3adb34d
+2025-06-12 01:20:12,469 - core.processor - INFO - Extracting metadata for: D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:12,470 - core.processor - INFO - Step 1: Extracting feature names for D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:19,388 - core.processor - INFO - Feature names extracted: {'is_matrix_table': True, 'feature_rows': ['Đối tác', 'Nguồn'], 'feature_cols': ['Năm 2024']}
+2025-06-12 01:20:19,388 - core.processor - INFO - Step 2: Getting feature name content for D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:19,462 - core.processor - INFO - Feature name result: {'feature_rows': ['Đối tác', 'Nguồn'], 'feature_cols': ['Năm 2024']}
+2025-06-12 01:20:19,462 - core.processor - INFO - Step 3: Getting row header info for D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:19,463 - core.metadata - INFO - Reading Excel file for row header analysis: D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:19,608 - core.metadata - INFO - DataFrame shape: (481, 16)
+2025-06-12 01:20:19,609 - core.metadata - INFO - DataFrame columns: Index(['TT', 'Đối tác', 'Nguồn', 'Năm 2024', 'Unnamed: 4', 'Unnamed: 5',
+       'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10',
+       'Unnamed: 11', 'Unnamed: 12', 'Unnamed: 13', 'Unnamed: 14',
+       'Unnamed: 15'],
+      dtype='object')
+2025-06-12 01:20:19,610 - core.metadata - INFO - DataFrame columns type: <class 'pandas.core.indexes.base.Index'>
+2025-06-12 01:20:19,610 - core.metadata - INFO - First column: TT
+2025-06-12 01:20:19,610 - core.metadata - INFO - First column type: <class 'str'>
+2025-06-12 01:20:19,610 - core.metadata - INFO - First column data type: <class 'pandas.core.series.Series'>
+2025-06-12 01:20:19,611 - core.metadata - INFO - First column data shape: (481,)
+2025-06-12 01:20:19,611 - core.metadata - INFO - Row 0: nan (is nan: True)
+2025-06-12 01:20:19,611 - core.metadata - INFO - Row 1: 1.0 (is nan: False)
+2025-06-12 01:20:19,611 - core.metadata - INFO - Number of row headers determined: 2
+2025-06-12 01:20:19,612 - core.processor - INFO - Number of row headers: 2
+2025-06-12 01:20:19,612 - core.processor - INFO - Step 4: Loading DataFrame for D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:19,612 - core.processor - INFO - Reading Excel with header range: [0, 1]
+2025-06-12 01:20:19,689 - core.processor - INFO - DataFrame loaded successfully. Shape: (480, 16)
+2025-06-12 01:20:19,690 - core.processor - INFO - DataFrame columns: [('TT', 'Unnamed: 0_level_1'), ('Đối tác', 'Unnamed: 1_level_1'), ('Nguồn', 'Unnamed: 2_level_1'), ('Năm 2024', 'Tháng 1'), ('Năm 2024', 'Tháng 2'), ('Năm 2024', 'Tháng 3'), ('Năm 2024', 'Tháng 4'), ('Năm 2024', 'Tháng 5'), ('Năm 2024', 'Tháng 6'), ('Năm 2024', 'Tháng 7'), ('Năm 2024', 'Tháng 8'), ('Năm 2024', 'Tháng 9'), ('Năm 2024', 'Tháng 10'), ('Năm 2024', 'Tháng 11'), ('Năm 2024', 'Tháng 12'), ('Năm 2024', 'Tổng')]
+2025-06-12 01:20:19,691 - core.processor - INFO - DataFrame columns type: <class 'pandas.core.indexes.multi.MultiIndex'>
+2025-06-12 01:20:19,691 - core.processor - INFO - Step 5: Preprocessing DataFrame for D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:19,693 - core.processor - INFO - After clean_unnamed_header: Shape (480, 16)
+2025-06-12 01:20:19,694 - core.processor - INFO - After fill_undefined_sequentially: Shape (480, 16)
+2025-06-12 01:20:19,697 - core.processor - INFO - After forward_fill_column_nans: Shape (480, 16)
+2025-06-12 01:20:19,697 - core.processor - INFO - Step 6: Creating nested dictionaries for D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:19,698 - core.processor - INFO - Feature rows for row_dict: ['Đối tác', 'Nguồn']
+2025-06-12 01:20:19,700 - core.metadata - INFO - Selected data is DataFrame with shape: (480, 1)
+2025-06-12 01:20:19,701 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,701 - core.metadata - INFO - Extracted first column as series with shape: (480,)
+2025-06-12 01:20:19,704 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,704 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,704 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,707 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,708 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,708 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,711 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,712 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,712 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,714 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,714 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,715 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,718 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,719 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,719 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,721 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,722 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,722 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,725 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,726 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,726 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,729 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,729 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,730 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,732 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,733 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,733 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,735 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,736 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,736 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,739 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,739 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,740 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,742 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,743 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,743 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,746 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,747 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,748 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,750 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,751 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,752 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,755 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,755 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,755 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,758 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,758 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,759 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,762 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,763 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,763 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,766 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,767 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,767 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,770 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,771 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,771 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,774 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,775 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,775 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,779 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,779 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,780 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,782 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,783 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,783 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,786 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,787 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,787 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,790 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,791 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,791 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,794 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,794 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,795 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,797 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,798 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,798 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,800 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,801 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,802 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,804 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,805 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,805 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,808 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,808 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,809 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,813 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,813 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,813 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,816 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,816 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,816 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,819 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,819 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,821 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,823 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,824 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,825 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,830 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,831 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,831 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,835 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,836 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,836 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,838 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,838 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,839 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,842 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,843 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,843 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,846 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,847 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,847 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,850 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,850 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,851 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,854 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,855 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,855 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,858 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,859 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,859 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,862 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,862 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,863 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,866 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,866 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,866 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,870 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,870 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,870 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,874 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,874 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,875 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,877 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,878 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,878 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,881 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,881 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,882 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,886 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,887 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,887 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,890 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,890 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,890 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,893 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,894 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,894 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,898 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,898 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,899 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,902 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,902 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,903 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,905 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,905 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,906 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,909 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,910 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,910 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,913 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,913 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,914 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,917 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,918 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,918 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,921 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,922 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,922 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,925 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,925 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,926 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,929 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,929 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,930 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,932 - core.metadata - INFO - Selected data is DataFrame with shape: (8, 1)
+2025-06-12 01:20:19,933 - core.metadata - INFO - Selected data columns: ['Header']
+2025-06-12 01:20:19,933 - core.metadata - INFO - Extracted first column as series with shape: (8,)
+2025-06-12 01:20:19,936 - core.processor - INFO - Row dict created successfully
+2025-06-12 01:20:19,936 - core.processor - INFO - Feature cols for col_dict: ['Năm 2024']
+2025-06-12 01:20:19,937 - core.processor - INFO - Col dict created successfully
+2025-06-12 01:20:23,521 - langchain_google_genai.chat_models - WARNING - Retrying langchain_google_genai.chat_models._chat_with_retry.<locals>._chat_with_retry in 2.0 seconds as it raised InternalServerError: 500 An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting.
+2025-06-12 01:20:30,030 - core.processor - INFO - Successfully extracted metadata for: D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:20:30,031 - conversation - INFO - Successfully processed file D:\project\vdt\xlsx_chatbot\web\backend\uploads\Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx for conversation dbb9ac0d-00d2-4f38-bec4-345bd3adb34d
+2025-06-12 01:20:30,032 - core.config - INFO - Successfully processed file: Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx
+2025-06-12 01:21:17,596 - conversation - INFO - Processing query for conversation dbb9ac0d-00d2-4f38-bec4-345bd3adb34d: cho tôi thông số vào tháng 9
+2025-06-12 01:21:20,684 - core.processor - INFO - Processing query for Doanh_ta_c_theo_đo__i_ta_c_va__nguo__n_8b23a136.xlsx: cho tôi thông số vào tháng 9
+2025-06-12 01:21:20,685 - core.processor - INFO - Using splitter agent to process query
+2025-06-12 01:21:37,261 - conversation - INFO - Successfully processed query for conversation dbb9ac0d-00d2-4f38-bec4-345bd3adb34d
+2025-06-12 01:21:57,993 - core.config - INFO - Shutting down Excel Chatbot API

@@ -62,27 +62,33 @@ class ConversationManager:
                 logger.info(f"Cleaned up conversation: {conversation_id}")
 
     def _cleanup_old_conversations(self):
-        """Clean up conversations older than 24 hours."""
+        """Clean up conversations older than configured timeout."""
         current_time = time.time()
         if current_time - self._last_cleanup < 3600:  # Only cleanup every hour
             return
         
         self._last_cleanup = current_time
-        cutoff_time = datetime.now() - timedelta(hours=24)
+        
+        # Make cleanup timeout configurable (default 7 days instead of 24 hours)
+        import os
+        cleanup_hours = int(os.getenv('CONVERSATION_CLEANUP_HOURS', '168'))  # 168 = 7 days
+        cutoff_time = datetime.now() - timedelta(hours=cleanup_hours)
         
         with self._lock:
             to_delete = []
             for conv_id, conv in self._conversations.items():
-                # Assuming conversation has created_at timestamp
+                # Check if conversation has created_at timestamp and is old enough
                 if hasattr(conv, 'created_at') and conv.created_at < cutoff_time:
                     to_delete.append(conv_id)
             
             for conv_id in to_delete:
                 del self._conversations[conv_id]
-                logger.info(f"Auto-cleaned expired conversation: {conv_id}")
+                logger.info(f"Auto-cleaned expired conversation: {conv_id} (older than {cleanup_hours} hours)")
             
             if to_delete:
-                logger.info(f"Cleaned up {len(to_delete)} expired conversations")
+                logger.info(f"Cleaned up {len(to_delete)} expired conversations (cleanup threshold: {cleanup_hours} hours)")
+            else:
+                logger.debug(f"No conversations to cleanup (threshold: {cleanup_hours} hours)")
 
 # Global instance of the manager
 conversation_manager = ConversationManager() 
