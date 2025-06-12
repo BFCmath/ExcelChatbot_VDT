@@ -61,6 +61,31 @@ def parse_llm_feature_name_output(output):
         'feature_cols': feature_cols
     }
 
+def get_feature_names_from_headers(headers_content, llm):
+    """
+    Get feature names from header content only (not full file content).
+    
+    Args:
+        headers_content (str): CSV format of only the header rows
+        llm: Language model instance
+        
+    Returns:
+        dict: Dictionary containing 'is_matrix_table', 'feature_rows', and 'feature_cols'
+    """
+    # Create the prompt using the template from prompt.py
+    prompt = FEATURE_ANALYSIS_PROMPT.format(excel_content=headers_content)
+    # Create the message
+    message = HumanMessage(content=prompt)
+
+    # Invoke the model
+    try:
+        response = llm.invoke([message])
+        print(response.content)
+    except Exception as e:
+        print(f"Error invoking the model: {e}")
+        raise
+    return parse_llm_feature_name_output(response.content)
+
 def get_feature_names(excel_file_path, llm):
     excel_content = read_file(excel_file_path)
     # Create the prompt using the template from prompt.py

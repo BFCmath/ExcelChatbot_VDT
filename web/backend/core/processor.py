@@ -19,8 +19,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 import dotenv
 
-from .preprocess import clean_unnamed_header, fill_undefined_sequentially, forward_fill_column_nans
-from .llm import splitter, get_feature_names
+from .preprocess import clean_unnamed_header, fill_undefined_sequentially, forward_fill_column_nans, extract_headers_only
+from .llm import splitter, get_feature_names, get_feature_names_from_headers
 from .extract_df import render_filtered_dataframe
 from .postprocess import TablePostProcessor
 from .utils import get_feature_name_content, format_row_dict_for_llm, format_col_dict_for_llm
@@ -84,23 +84,28 @@ class MultiFileProcessor:
         try:
             logger.info(f"Extracting metadata for: {file_path}")
             
-            # Extract feature names
-            logger.info(f"Step 1: Extracting feature names for {file_path}")
-            metadata.feature_names = get_feature_names(file_path, self.llm)
-            logger.info(f"Feature names extracted: {metadata.feature_names}")
-            
-            # Get feature name content
-            logger.info(f"Step 2: Getting feature name content for {file_path}")
-            _, metadata.feature_name_result = get_feature_name_content(file_path, metadata.feature_names)
-            logger.info(f"Feature name result: {metadata.feature_name_result}")
-            
-            # Get row header info
-            logger.info(f"Step 3: Getting row header info for {file_path}")
+            # Get row header info FIRST
+            logger.info(f"Step 1: Getting row header info for {file_path}")
             metadata.number_of_row_header = get_number_of_row_header(file_path)
             logger.info(f"Number of row headers: {metadata.number_of_row_header}")
             
+            # Extract only headers for LLM processing
+            logger.info(f"Step 2: Extracting headers for LLM analysis for {file_path}")
+            headers_content = extract_headers_only(file_path, metadata.number_of_row_header)
+            logger.info(f"Headers extracted for LLM processing")
+            
+            # Extract feature names from headers only
+            logger.info(f"Step 3: Extracting feature names from headers for {file_path}")
+            metadata.feature_names = get_feature_names_from_headers(headers_content, self.llm)
+            logger.info(f"Feature names extracted: {metadata.feature_names}")
+            
+            # Get feature name content
+            logger.info(f"Step 4: Getting feature name content for {file_path}")
+            _, metadata.feature_name_result = get_feature_name_content(file_path, metadata.feature_names)
+            logger.info(f"Feature name result: {metadata.feature_name_result}")
+            
             # Load and preprocess DataFrame
-            logger.info(f"Step 4: Loading DataFrame for {file_path}")
+            logger.info(f"Step 5: Loading DataFrame for {file_path}")
             metadata.df = pd.read_excel(
                 file_path, 
                 header=list(range(0, metadata.number_of_row_header)),
@@ -108,13 +113,13 @@ class MultiFileProcessor:
             )
             logger.info(f"DataFrame loaded successfully. Shape: {metadata.df.shape}")
             
-            logger.info(f"Step 5: Preprocessing DataFrame for {file_path}")
+            logger.info(f"Step 6: Preprocessing DataFrame for {file_path}")
             metadata.df = clean_unnamed_header(metadata.df, metadata.number_of_row_header)
             metadata.df = fill_undefined_sequentially(metadata.df, metadata.feature_name_result["feature_rows"])
             metadata.df = forward_fill_column_nans(metadata.df, metadata.feature_name_result["feature_rows"])
             
             # Create nested dictionaries
-            logger.info(f"Step 6: Creating nested dictionaries for {file_path}")
+            logger.info(f"Step 7: Creating nested dictionaries for {file_path}")
             metadata.row_dict = convert_df_rows_to_nested_dict(df_input=metadata.df, hierarchy_columns_list=metadata.feature_name_result["feature_rows"])
             metadata.col_dict = convert_df_headers_to_nested_dict(df=metadata.df, column_names_list=metadata.feature_name_result["feature_cols"])
             

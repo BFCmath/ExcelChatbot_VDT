@@ -1,6 +1,34 @@
 import pandas as pd
 import numpy as np
 
+def extract_headers_only(excel_file_path, number_of_row_header):
+    """
+    Extract only the header rows from an Excel file for LLM processing.
+    
+    Args:
+        excel_file_path (str): Path to the Excel file
+        number_of_row_header (int): Number of header rows to extract
+        
+    Returns:
+        str: CSV format of only the header rows
+    """
+    try:
+        # Read Excel file with specified number of header rows
+        df_headers = pd.read_excel(
+            excel_file_path, 
+            header=list(range(0, number_of_row_header)),
+            nrows=0,  # Only read headers, no data rows
+            engine='openpyxl'
+        )
+        
+        # Convert headers to CSV format (empty data, just column structure)
+        headers_content = df_headers.to_csv(index=False)
+        return headers_content
+        
+    except Exception as e:
+        print(f"Error reading Excel headers: {e}")
+        raise
+
 def clean_unnamed_header(df, number_of_row_header):
     def sua_ten_tieu_de_phu(ten_tieu_de_phu):
         if isinstance(ten_tieu_de_phu, str) and ten_tieu_de_phu.startswith("Unnamed:"):

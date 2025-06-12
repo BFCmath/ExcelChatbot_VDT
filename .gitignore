@@ -10,3 +10,4 @@ __pycache__/
 web/backend/uploads/*
 web/backend/logs/app.log
 web/logs/app.log
+app.log

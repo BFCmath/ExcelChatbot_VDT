@@ -758,89 +758,78 @@ Now solve this query
 
 # Prompt for feature analysis
 FEATURE_ANALYSIS_PROMPT = """
-        Read the file, think step by step, identify if this is a matrix table or a flatten table.
-        Reponse in the following format:
-        ### Thinking
-        ### Is Matrix Table?
-        ### Name of Feature Rows
-        ### Name of Feature Cols
-        
-        Instructions:
-        If the table is a matrix table, Feature Rows are the columns show hierarchical structure vertically, and usually the very first columns.
-        Feature rows should exclude the order column like ID, ...
-        Feature cols are the columns that are not feature rows, usually show hierarchical structure horizontally.
-        
-        Example 1
-        ### Content
-        'Thành Phố,Phân loại,Quận,Phường,Giới tính,Unnamed: 5\r\n,,,,Nam,Nữ\r\nHồ Chí Minh,,,,,\r\n,Lớn,,,,\r\n,,Quận 1,,,\r\n,,,Phường 1,,\r\n,,,Phường 2,,\r\n,Trung Bình,,,,\r\n,,Quận 2,,,\r\n,,,Phường 1,,\r\n,,Quận 4,,,\r\n,,,Phường 14,,\r\n,,,Phường 3,,\r\nHà Nội,,,,,\r\n,,Cầu Giấy,,,\r\n,,,Phường 1,,\r\n,,,Phường 2,,\r\n,,Đống Đa,,,\r\n,,,Phường 1,,\r\n'
-        ### Thinking
-        The provided content has multiple header rows. 
-        The first row lists potential feature names, and the second row provides specific values (`Nam`, `Nữ`) under the `Giới tính` column. 
-        The first few columns show a hierarchical structure in the data rows:
-            + Thành Phố: Hồ Chí Minh, Hà Nội
-            + Phân loại: Lớn, Trung Bình
-            + Quận: Quận 1, Quận 2, Quận 4, Cầu Giấy, Đống Đa
-            + Phường: Phường 1, Phường 2, Phường 14, Phường 3
-        Giới Tính however is a Feature Column, indicated by the values `Nam` and `Nữ` in the second row.
-        ### Is Matrix Table?
-        Yes
+Read the bewow content of an excel file, think step by step, identify if this is a matrix table or a flatten table.
+Reponse in the following format:
+### Thinking
+### Is Matrix Table?
+### Name of Feature Rows
+### Name of Feature Cols
 
-        ### Name of Feature Rows
-        Thành Phố,Phân loại,Quận,Phường
-        
-        ### Name of Feature Cols
-        Giới tính
-        
-        Example 2
-        ### Content
-        'Thứ tự,Thành Phố,Phân loại,Quận,Phường,Thu nhập,Unnamed: 6,Unnamed: 7\r\n,,,,,Thấp,Trung Bình,Cao\r\n1,Hồ Chí Minh,,,,,,\r\n1.1,,Lớn,,,,,\r\n1.1.1,,,Quận 1,,,,\r\n1.1.1.1,,,,Phường 1,,,\r\n1.1.1.2,,,,Phường 2,,,\r\n1.2,,Nhỏ,,,,,\r\n1.2.1,,,Quận 4,,,,\r\n1.2.1.1,,,,Phường 1,,,\r\n2,Hà Nội,,,,,,\r\n2.1,,,Cầu Giấy,,,,\r\n2.1.1,,,,Phường 1,,,\r\n'
-        ### Thinking
-        The provided content has two header rows. The first row lists potential feature names, and the second row provides specific values (`Thấp`, `Trung Bình`, `Cao`) under the `Thu nhập` column and its subsequent unnamed columns. This indicates that `Thu nhập` is a feature column with values listed in the second header row.
-        The first few columns (`Thành Phố`, `Phân loại`, `Quận`, `Phường`) show a clear hierarchical structure in the data rows, where values are nested within the preceding columns. This structure defines the rows of the table.
-        The combination of multiple header rows defining feature columns and hierarchical structure in the initial columns defining the rows is characteristic of a matrix table.
-        We do not include `Thứ tự` as this is not a feature row but rather an index or identifier for the records.
-        ### Is Matrix Table?
-        Yes
+Instructions:
+If the table is a matrix table, Feature Rows are the columns show hierarchical structure vertically, and usually the very first columns.
+Feature rows should exclude the order column like ID, ...
+Feature cols are the columns that are not feature rows, usually show hierarchical structure horizontally.
 
-        ### Name of Feature Rows
-        Thành Phố,Phân loại,Quận,Phường
-        ### Name of Feature Cols
-        Thu nhập
-        
-        Example 3
-        ### Content
-        'ID,Cà phê,Loại,Nhập Khẩu ,Thời gian,Unnamed: 5,Thu nhập,Unnamed: 7,Unnamed: 8\r\n,,,,Hè,Đông,Thấp,Trung Bình,Cao\r\n1,Cà phê thường,,,,,,,\r\n1.1,,Loại 1,,,,,,\r\n1.1.1,,,Việt Nam,,,,,\r\n1.1.2,,,Brazil,,,,,\r\n1.1.3,,,Mỹ,,,,,\r\n1.2,,Loại 2,,,,,,\r\n1.2.1,,,Việt Nam,,,,,\r\n1.2.2,,,Mỹ,,,,,\r\n2,Cà phê Đen,,,,,,,\r\n2.1,,Loại 2,,,,,,\r\n2.1.1,,,Việt Nam,,,,,\r\n'
-        ### Thinking
-        The provided content has two header rows. The first row lists potential feature names (`ID`, `Cà phê`, `Loại`, `Nhập Khẩu`, `Thời gian`, `Thu nhập`, etc.). The second row provides specific values (`Hè`, `Đông`, `Thấp`, `Trung Bình`, `Cao`) under columns related to `Thời gian` and `Thu nhập`. This indicates that `Thời gian` and `Thu nhập` are feature columns with values listed in the second header row.
-        The initial columns (`Cà phê`, `Loại`, `Nhập Khẩu`) show a clear hierarchical structure in the data rows, where values are nested within the preceding columns (e.g., `Loại 1` is under `Cà phê thường`, `Việt Nam` is under `Loại 1`). This structure defines the rows of the table.
-        The combination of multiple header rows defining feature columns and hierarchical structure in the initial columns defining the rows is characteristic of a matrix table. The columns defining the hierarchical structure (`Cà phê`, `Loại`, `Nhập Khẩu`) are the feature rows.
-        We do not include `ID` as this is not a feature row but rather an index or identifier for the records.
+Example 1
+### Content
+Thành Phố,Phân loại,Quận,Phường,Giới tính,Giới tính
+Unnamed: 0_level_1,Unnamed: 1_level_1,Unnamed: 2_level_1,Unnamed: 3_level_1,Nam,Nữ
+### Thinking
+The provided content shows two header rows. The first row has `Giới tính` listed twice, and the second row provides specific sub-categories `Nam` and `Nữ` under these `Giới tính` entries. This setup, where a single header spans multiple sub-headers, signifies a hierarchical column structure, which is characteristic of a matrix table. The columns `Thành Phố`, `Phân loại`, `Quận`, `Phường` serve as identifiers for the rows.
+### Is Matrix Table?
+Yes
 
-        ### Is Matrix Table?
-        Yes
+### Name of Feature Rows
+Thành Phố,Phân loại,Quận,Phường
 
-        ### Name of Feature Rows
-        Cà phê,Loại,Nhập Khẩu 
-        ### Name of Feature Cols
-        Thời gian,Thu nhập
-        
-        Example 4
-        ### Content
-        'TT,Quan hệ,Tên \r\n1,Cha ,Đổng\r\n2,Mẹ,Thị\r\n3,Chồng,Nam\r\n4,Vợ,Lan\r\n5,Con trai 1,Tú\r\n6,Con trai 2,Tuấn\r\n'
-        ### Thinking
-        The provided content has a single header row: `TT,Quan hệ,Tên`. The subsequent rows contain data where each row represents a distinct record with values corresponding to the columns defined in the header. There is no indication of multiple header rows defining feature columns or a hierarchical structure in the data rows where values are nested within preceding columns. This structure is typical of a flatten table.
+### Name of Feature Cols
+Giới tính
 
-        ### Is Matrix Table?
-        No
+Example 2
+### Content
+Thứ tự,Thành Phố,Phân loại,Quận,Phường,Thu nhập,Thu nhập,Thu nhập
+Unnamed: 0_level_1,Unnamed: 1_level_1,Unnamed: 2_level_1,Unnamed: 3_level_1,Unnamed: 4_level_1,Thấp,Trung Bình,Cao
+### Thinking
+The provided content displays two header rows. The first row has `Thu nhập` appearing three times, and the second row provides sub-categories `Thấp`, `Trung Bình`, `Cao` under these `Thu nhập` entries. This structure, where a single header spans multiple sub-headers, is a strong indicator of a hierarchical column structure, which is characteristic of a matrix table. The initial columns (`Thứ tự`, `Thành Phố`, `Phân loại`, `Quận`, `Phường`) define the rows' attributes. `Thứ tự` appears to be an order column, which should be excluded from feature rows as per instructions.
+### Is Matrix Table?
+Yes
 
-        ### Name of Feature Rows
-        None
-        ### Name of Feature Cols
-        None
-        
-        Now solve
-        ### Content
-        {excel_content}
+### Name of Feature Rows
+Thành Phố,Phân loại,Quận,Phường
+### Name of Feature Cols
+Thu nhập
+
+Example 3
+### Content
+Cà phê,Loại,Nhập Khẩu ,Thời gian,Thời gian,Thu nhập,Thu nhập,Thu nhập
+Unnamed: 0_level_1,Unnamed: 1_level_1,Unnamed: 2_level_1,Hè,Đông,Thấp,Trung Bình,Cao
+### Thinking
+The provided content shows two header rows. The first row contains `Thời gian` and `Thu nhập` which are repeated, and the second row provides specific sub-categories (`Hè`, `Đông` for `Thời gian`; `Thấp`, `Trung Bình`, `Cao` for `Thu nhập`). This pattern, where a top-level header spans multiple sub-headers, is characteristic of a hierarchical column structure, indicating a matrix table. The columns `Cà phê`, `Loại`, `Nhập Khẩu` at the beginning define the row attributes.
+### Is Matrix Table?
+Yes
+
+### Name of Feature Rows
+Cà phê,Loại,Nhập Khẩu 
+### Name of Feature Cols
+Thời gian,Thu nhập
+
+Example 4
+### Content
+TT,Quan hệ,Tên
+### Thinking
+The provided content has only one header row: `TT,Quan hệ,Tên`. There are no subsequent rows that act as sub-headers, nor are there any indications of hierarchical relationships between the existing columns (e.g., a top-level header spanning multiple sub-headers or "Unnamed: X_level_Y" columns). This structure is characteristic of a flatten table.
+
+### Is Matrix Table?
+No
+
+### Name of Feature Rows
+None
+### Name of Feature Cols
+None
+
+Now solve
+### Content
+{excel_content}
 """
 
 SCHEMA_ANALYSIS_PROMPT = """
