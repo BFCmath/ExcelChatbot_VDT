@@ -6,6 +6,7 @@ with proper rowspan and colspan calculations for Excel-like table display.
 
 import pandas as pd
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +22,33 @@ class TablePostProcessor:
         Extract hierarchical table information from a DataFrame with potential MultiIndex columns.
         This preserves the structure needed for proper HTML table rendering with merged cells.
         Focuses on creating vertical merged cells (rowspan) for proper financial table display.
+        
+        Returns both normal hierarchical table and flattened table structures.
         """
+        logger.info(f"🔄 [POSTPROCESS] Starting table extraction for DataFrame shape: {df.shape}")
+        logger.info(f"🔄 [POSTPROCESS] DataFrame columns: {df.columns}")
+        logger.info(f"🔄 [POSTPROCESS] DataFrame columns type: {type(df.columns)}")
+        
         # Check if we have MultiIndex columns
         has_multiindex = isinstance(df.columns, pd.MultiIndex)
+        logger.info(f"📊 [POSTPROCESS] Has MultiIndex: {has_multiindex}")
         
         if has_multiindex:
+            logger.info(f"🔧 [POSTPROCESS] Processing MultiIndex columns with {df.columns.nlevels} levels")
+            
             # For proper vertical merging, we need to analyze the structure differently
             header_matrix = self.build_header_matrix(df.columns)
+            logger.info(f"📋 [POSTPROCESS] Built header matrix with {len(header_matrix)} levels")
             
             # Get the actual column names for the final level
             final_columns = [self.clean_column_name(col) for col in df.columns.values]
+            logger.info(f"📋 [POSTPROCESS] Final columns: {final_columns}")
+            
+            # Create flattened headers
+            flattened_headers = self.create_flattened_headers(df.columns)
+            logger.info(f"🔧 [POSTPROCESS] Created flattened headers: {flattened_headers}")
         else:
+            logger.info(f"🔧 [POSTPROCESS] Processing simple single-level headers")
             # Simple single-level headers
             header_matrix = [[{
                 "text": str(col),
@@ -40,6 +57,9 @@ class TablePostProcessor:
                 "position": i
             } for i, col in enumerate(df.columns)]]
             final_columns = [str(col) for col in df.columns]
+            flattened_headers = final_columns.copy()
+            logger.info(f"📋 [POSTPROCESS] Single-level final columns: {final_columns}")
+            logger.info(f"🔧 [POSTPROCESS] Single-level flattened headers: {flattened_headers}")
         
         # Convert data to JSON-serializable format
         data_rows = []
@@ -59,7 +79,10 @@ class TablePostProcessor:
                     row_data.append(str(value))
             data_rows.append(row_data)
         
-        return {
+        logger.info(f"📊 [POSTPROCESS] Converted {len(data_rows)} data rows")
+        
+        # Return both normal and flattened table structures
+        normal_table = {
             "has_multiindex": has_multiindex,
             "header_matrix": header_matrix,
             "final_columns": final_columns,
@@ -67,7 +90,134 @@ class TablePostProcessor:
             "row_count": len(data_rows),
             "col_count": len(final_columns)
         }
+        
+        flattened_table = {
+            "has_multiindex": False,  # Flattened is always single level
+            "header_matrix": [[{
+                "text": header,
+                "colspan": 1,
+                "rowspan": 1,
+                "position": i
+            } for i, header in enumerate(flattened_headers)]],
+            "final_columns": flattened_headers,
+            "data_rows": data_rows,  # Same data, different headers
+            "row_count": len(data_rows),
+            "col_count": len(flattened_headers)
+        }
+        
+        logger.info(f"✅ [POSTPROCESS] Normal table created with {normal_table['col_count']} columns, {normal_table['row_count']} rows")
+        logger.info(f"✅ [POSTPROCESS] Flattened table created with {flattened_table['col_count']} columns, {flattened_table['row_count']} rows")
+        logger.info(f"✅ [POSTPROCESS] Normal final_columns: {normal_table['final_columns']}")
+        logger.info(f"✅ [POSTPROCESS] Flattened final_columns: {flattened_table['final_columns']}")
+        
+        result = {
+            "normal_table": normal_table,
+            "flattened_table": flattened_table
+        }
+        
+        logger.info(f"🎯 [POSTPROCESS] Returning result with keys: {list(result.keys())}")
+        return result
     
+    def create_flattened_headers(self, multiindex_columns):
+        """
+        Create flattened headers from MultiIndex columns by combining all levels with acronyms.
+        
+        For horizontal merges: combine all levels with acronyms for intermediate levels, keep final level as-is
+        For vertical merges: use the non-"Header" level
+        
+        Args:
+            multiindex_columns: pandas MultiIndex columns
+            
+        Returns:
+            list: Flattened header names
+        """
+        logger.info(f"🔧 [FLATTEN] Starting flattened headers creation")
+        logger.info(f"🔧 [FLATTEN] MultiIndex columns: {multiindex_columns}")
+        logger.info(f"🔧 [FLATTEN] Number of columns: {len(multiindex_columns)}")
+        
+        flattened_headers = []
+        
+        for i, col_tuple in enumerate(multiindex_columns):
+            logger.info(f"🔧 [FLATTEN] Processing column {i}: {col_tuple}")
+            
+            # Get all non-"Header" parts of the column tuple
+            meaningful_parts = [str(part) for part in col_tuple if str(part) != "Header" and str(part) != "nan"]
+            logger.info(f"🔧 [FLATTEN] Meaningful parts: {meaningful_parts}")
+            
+            if len(meaningful_parts) == 0:
+                # All parts are "Header" or nan, use a default name
+                flattened_name = "Column"
+                logger.info(f"🔧 [FLATTEN] No meaningful parts, using default: {flattened_name}")
+            elif len(meaningful_parts) == 1:
+                # Only one meaningful part (vertical merge case), use as is
+                flattened_name = meaningful_parts[0]
+                logger.info(f"🔧 [FLATTEN] Single meaningful part (vertical merge): {flattened_name}")
+            else:
+                # Multiple meaningful parts (horizontal merge case)
+                # Create acronyms for all parts EXCEPT the last one (leaf level)
+                acronym_parts = []
+                
+                # Process all parts except the last one with acronyms
+                for j, part in enumerate(meaningful_parts[:-1]):
+                    acronym = self.create_acronym(part)
+                    acronym_parts.append(acronym)
+                    logger.info(f"🔧 [FLATTEN] Part {j} '{part}' -> acronym '{acronym}'")
+                
+                # Keep the last part (leaf level) as-is
+                acronym_parts.append(meaningful_parts[-1])
+                logger.info(f"🔧 [FLATTEN] Final part (kept as-is): {meaningful_parts[-1]}")
+                
+                flattened_name = " ".join(acronym_parts)
+                logger.info(f"🔧 [FLATTEN] Combined flattened name: {flattened_name}")
+            
+            flattened_headers.append(flattened_name)
+            logger.info(f"🔧 [FLATTEN] Added to flattened headers: {flattened_name}")
+        
+        logger.info(f"✅ [FLATTEN] Final flattened headers: {flattened_headers}")
+        return flattened_headers
+    
+    def create_acronym(self, text):
+        """
+        Create acronym from text, keeping numbers intact and preserving case.
+        
+        Examples:
+        - "chi phí" -> "cp"
+        - "Chi Phí" -> "CP"
+        - "cấp 1" -> "c1"
+        - "Năm 2024" -> "N2024"
+        - "Học Kì 1" -> "HK1"
+        
+        Args:
+            text (str): Input text
+            
+        Returns:
+            str: Acronym with numbers and case preserved
+        """
+        text = str(text).strip()
+        
+        # Split text into words
+        words = re.split(r'\s+', text)
+        
+        acronym_parts = []
+        for word in words:
+            if re.match(r'^\d+$', word):
+                # Pure number, keep as is
+                acronym_parts.append(word)
+            elif re.search(r'\d', word):
+                # Word contains numbers, extract letters and numbers separately
+                letters = re.sub(r'\d+', '', word)
+                numbers = ''.join(re.findall(r'\d+', word))
+                if letters:
+                    acronym_parts.append(letters[0] + numbers)
+                else:
+                    acronym_parts.append(numbers)
+            else:
+                # Pure text, take first letter
+                if word:
+                    acronym_parts.append(word[0])
+        
+        return ''.join(acronym_parts)
+
     def build_header_matrix(self, multiindex_columns):
         """
         Build a matrix representation of MultiIndex headers for proper HTML rendering with rowspan and colspan.

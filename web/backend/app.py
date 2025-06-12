@@ -264,6 +264,37 @@ async def handle_query(conversation_id: str, request: QueryRequest):
     try:
         # Process query asynchronously
         result = await process_query_async(conv, request.query)
+        
+        # Add comprehensive logging for debugging
+        logger.info(f"🔄 [API] Query processing completed for conversation {conversation_id}")
+        logger.info(f"📊 [API] Result type: {type(result)}")
+        logger.info(f"📊 [API] Result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+        
+        if isinstance(result, dict):
+            logger.info(f"✅ [API] Result success: {result.get('success', 'MISSING')}")
+            logger.info(f"✅ [API] Result query: {result.get('query', 'MISSING')}")
+            logger.info(f"✅ [API] Result has results: {'results' in result}")
+            
+            if 'results' in result and isinstance(result['results'], list):
+                logger.info(f"📋 [API] Results list length: {len(result['results'])}")
+                
+                for i, res in enumerate(result['results']):
+                    logger.info(f"📄 [API] Result {i} keys: {list(res.keys()) if isinstance(res, dict) else 'Not a dict'}")
+                    if isinstance(res, dict):
+                        logger.info(f"📄 [API] Result {i} filename: {res.get('filename', 'MISSING')}")
+                        logger.info(f"📄 [API] Result {i} success: {res.get('success', 'MISSING')}")
+                        logger.info(f"📄 [API] Result {i} has table_info: {'table_info' in res}")
+                        logger.info(f"📄 [API] Result {i} has flattened_table_info: {'flattened_table_info' in res}")
+                        
+                        if 'flattened_table_info' in res:
+                            if res['flattened_table_info']:
+                                logger.info(f"📄 [API] Result {i} flattened_table_info keys: {list(res['flattened_table_info'].keys())}")
+                                logger.info(f"📄 [API] Result {i} flattened final_columns: {res['flattened_table_info'].get('final_columns', 'MISSING')}")
+                            else:
+                                logger.warning(f"⚠️ [API] Result {i} flattened_table_info is None or empty!")
+                        else:
+                            logger.error(f"❌ [API] Result {i} MISSING flattened_table_info!")
+        
         return QueryResponse(results=result)
     except ValueError as e:
         # Re-raise ValueError to be handled by the exception handler

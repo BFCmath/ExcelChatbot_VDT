@@ -251,15 +251,45 @@ class MultiFileProcessor:
             df_result = self.process_single_file_query(assignment)
             # Return the DataFrame as-is to preserve hierarchical structure
             if df_result is not None and not df_result.empty:
-                # Use post-processor to preserve hierarchical structure for frontend rendering
-                table_info = self.post_processor.extract_hierarchical_table_info(df_result)
+                # Use post-processor to get both normal and flattened table structures
+                logger.info(f"🔄 DataFrame result shape: {df_result.shape}")
+                logger.info(f"🔄 DataFrame columns: {df_result.columns}")
+                logger.info(f"🔄 DataFrame has MultiIndex: {isinstance(df_result.columns, pd.MultiIndex)}")
+                
+                table_structures = self.post_processor.extract_hierarchical_table_info(df_result)
+                
+                logger.info(f"📊 Table structures keys: {list(table_structures.keys())}")
+                logger.info(f"📊 Normal table keys: {list(table_structures['normal_table'].keys()) if 'normal_table' in table_structures else 'MISSING'}")
+                logger.info(f"📊 Flattened table keys: {list(table_structures['flattened_table'].keys()) if 'flattened_table' in table_structures else 'MISSING'}")
+                
+                if 'normal_table' in table_structures:
+                    normal_table = table_structures["normal_table"]
+                    logger.info(f"📋 Normal table final_columns: {normal_table.get('final_columns', 'MISSING')}")
+                    logger.info(f"📋 Normal table row_count: {normal_table.get('row_count', 'MISSING')}")
+                    logger.info(f"📋 Normal table has_multiindex: {normal_table.get('has_multiindex', 'MISSING')}")
+                
+                if 'flattened_table' in table_structures:
+                    flattened_table = table_structures["flattened_table"]
+                    logger.info(f"🔧 Flattened table final_columns: {flattened_table.get('final_columns', 'MISSING')}")
+                    logger.info(f"🔧 Flattened table row_count: {flattened_table.get('row_count', 'MISSING')}")
+                    logger.info(f"🔧 Flattened table has_multiindex: {flattened_table.get('has_multiindex', 'MISSING')}")
+                else:
+                    logger.error("❌ FLATTENED TABLE IS MISSING FROM TABLE_STRUCTURES!")
                 
                 result_entry = {
                     "filename": self.file_metadata[file_path].original_filename,
                     "query": sub_query,
                     "success": True,
-                    "table_info": table_info
+                    "table_info": table_structures["normal_table"],  # Keep backward compatibility
+                    "flattened_table_info": table_structures["flattened_table"]  # Add flattened table
                 }
+                
+                logger.info(f"✅ Result entry keys: {list(result_entry.keys())}")
+                logger.info(f"✅ Result entry has flattened_table_info: {'flattened_table_info' in result_entry}")
+                if 'flattened_table_info' in result_entry and result_entry['flattened_table_info']:
+                    logger.info(f"✅ Flattened table info final_columns: {result_entry['flattened_table_info'].get('final_columns', 'MISSING')}")
+                else:
+                    logger.error("❌ RESULT ENTRY MISSING FLATTENED TABLE INFO!")
             else:
                 result_entry = {
                     "filename": self.file_metadata[file_path].original_filename,

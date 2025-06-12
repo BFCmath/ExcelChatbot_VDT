@@ -1,4 +1,5 @@
 // Configuration
+console.log('🚀 Script.js is loading...');
 const API_BASE_URL = 'http://localhost:5001';
 
 // Global state
@@ -127,8 +128,10 @@ function handleDrop(e) {
 
 // Conversation management
 function createNewConversation() {
+    console.log('🔄 [API] Creating new conversation...');
     showLoading('Creating new conversation...');
     
+    console.log('🌐 [API] Sending POST request to:', `${API_BASE_URL}/conversations`);
     fetch(`${API_BASE_URL}/conversations`, {
         method: 'POST',
         headers: {
@@ -136,12 +139,19 @@ function createNewConversation() {
         }
     })
     .then(response => {
+        console.log('📥 [API] Create conversation response received:', response);
+        console.log('📊 [API] Response status:', response.status, response.statusText);
+        console.log('✅ [API] Response ok:', response.ok);
+        
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return response.json();
     })
     .then(data => {
+        console.log('📋 [API] Create conversation data:', data);
+        console.log('🆔 [API] New conversation ID:', data.conversation_id);
+        
         currentConversationId = data.conversation_id;
         conversations[currentConversationId] = {
             id: currentConversationId,
@@ -157,11 +167,12 @@ function createNewConversation() {
         
         hideLoading();
         showSuccess('New conversation created!');
+        console.log('✅ [API] Conversation created successfully');
     })
     .catch(error => {
+        console.error('❌ [API] Error creating conversation:', error);
         hideLoading();
         showError('Failed to create conversation: ' + error.message);
-        console.error('Error creating conversation:', error);
     });
 }
 
@@ -176,14 +187,22 @@ function switchToConversation(conversationId) {
     }
     
     // Validate conversation with backend before switching
+    console.log('🔍 [API] Validating conversation with backend:', conversationId);
+    console.log('🌐 [API] Sending GET request to:', `${API_BASE_URL}/conversations/${conversationId}/validate`);
+    
     fetch(`${API_BASE_URL}/conversations/${conversationId}/validate`)
         .then(response => {
+            console.log('📥 [API] Validate conversation response received:', response);
+            console.log('📊 [API] Response status:', response.status, response.statusText);
+            console.log('✅ [API] Response ok:', response.ok);
+            
             if (!response.ok) {
                 throw new Error(`Conversation not found in backend`);
             }
             return response.json();
         })
         .then(() => {
+            console.log('✅ [API] Conversation validation successful for:', conversationId);
             // Conversation is valid, proceed with switch
             currentConversationId = conversationId;
             
@@ -209,6 +228,7 @@ function switchToConversation(conversationId) {
             updateInputState();
         })
         .catch(error => {
+            console.error('❌ [API] Error validating conversation:', conversationId, error);
             console.error(`Error switching to conversation ${conversationId}:`, error);
             
             // Remove invalid conversation from frontend
@@ -311,13 +331,24 @@ function uploadFile(file) {
     const fileId = file.name + '_' + file.lastModified;
     if (uploadStates[fileId]) return;
     
+    console.log('📤 [API] Starting file upload:', file.name);
+    console.log('📊 [API] File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+    });
+    console.log('🆔 [API] Upload conversation ID:', currentConversationId);
+    
     // Validate file type and size before upload
     if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+        console.error('❌ [API] Invalid file type:', file.name);
         showError('Please upload only Excel files (.xlsx or .xls)');
         return;
     }
     
     if (file.size > 50 * 1024 * 1024) { // 50MB limit
+        console.error('❌ [API] File too large:', file.size, 'bytes');
         showError('File size too large. Maximum size is 50MB.');
         return;
     }
@@ -332,6 +363,9 @@ function uploadFile(file) {
     // Append file as binary data (this preserves Excel structure)
     formData.append('file', file, file.name);
     formData.append('conversation_id', currentConversationId);
+    
+    console.log('📦 [API] FormData created with file and conversation_id');
+    console.log('🌐 [API] Sending POST request to:', `${API_BASE_URL}/upload`);
     
     // Simulate progress for better UX
     let progress = 0;
@@ -349,17 +383,24 @@ function uploadFile(file) {
         // This ensures proper multipart/form-data boundary is set
     })
     .then(response => {
+        console.log('📥 [API] Upload response received:', response);
+        console.log('📊 [API] Response status:', response.status, response.statusText);
+        console.log('✅ [API] Response ok:', response.ok);
+        
         clearInterval(progressInterval);
         updateProgress(100);
         
         if (!response.ok) {
             return response.text().then(text => {
+                console.error('❌ [API] Upload error response text:', text);
                 throw new Error(`HTTP ${response.status}: ${text}`);
             });
         }
         return response.json();
     })
     .then(data => {
+        console.log('📋 [API] Upload success data:', data);
+        
         // Add file to conversation
         if (!conversations[currentConversationId].files) {
             conversations[currentConversationId].files = [];
@@ -374,18 +415,20 @@ function uploadFile(file) {
         updateInputState();
         closeUploadModal();
         showSuccess(`File "${file.name}" uploaded successfully!`);
+        console.log('✅ [API] File upload completed successfully');
         
         // Update conversation title if it's still "New Conversation"
         if (conversations[currentConversationId].title === 'New Conversation') {
             conversations[currentConversationId].title = `Chat with ${file.name}`;
             updateConversationsList();
             elementsCache['current-conversation-title'].textContent = conversations[currentConversationId].title;
+            console.log('🏷️ [API] Updated conversation title to:', conversations[currentConversationId].title);
         }
     })
     .catch(error => {
+        console.error('❌ [API] File upload error:', error);
         clearInterval(progressInterval);
         showError('Failed to upload file: ' + error.message);
-        console.error('Error uploading file:', error);
     })
     .finally(() => {
         delete uploadStates[fileId];
@@ -435,9 +478,20 @@ function updateUploadedFiles() {
 function syncFilesWithBackend() {
     if (!currentConversationId) return;
     
+    console.log('🔄 [API] Syncing files with backend for conversation:', currentConversationId);
+    console.log('🌐 [API] Sending GET request to:', `${API_BASE_URL}/conversations/${currentConversationId}/files`);
+    
     fetch(`${API_BASE_URL}/conversations/${currentConversationId}/files`)
-    .then(response => response.json())
+    .then(response => {
+        console.log('📥 [API] Sync files response received:', response);
+        console.log('📊 [API] Response status:', response.status, response.statusText);
+        console.log('✅ [API] Response ok:', response.ok);
+        return response.json();
+    })
     .then(data => {
+        console.log('📋 [API] Sync files data:', data);
+        console.log('📁 [API] Processed files:', data.processed_files);
+        
         if (data.processed_files) {
             // Sync frontend files with backend
             const backendFiles = data.processed_files.map(filename => ({
@@ -449,10 +503,11 @@ function syncFilesWithBackend() {
             conversations[currentConversationId].files = backendFiles;
             updateUploadedFiles();
             updateInputState();
+            console.log('✅ [API] Files synced successfully');
         }
     })
     .catch(error => {
-        console.error('Error syncing files with backend:', error);
+        console.error('❌ [API] Error syncing files with backend:', error);
     });
 }
 
@@ -469,15 +524,23 @@ function sendMessage() {
     const input = elementsCache['message-input'];
     const message = input.value.trim();
     
+    console.log('💬 [API] Sending message:', message);
+    console.log('🆔 [API] Current conversation ID:', currentConversationId);
+    
     if (!message || isSending) return;
     
     if (!currentConversationId) {
+        console.error('❌ [API] No conversation ID available');
         showError('Please create a conversation first');
         return;
     }
     
     const hasFiles = conversations[currentConversationId]?.files?.length > 0;
+    console.log('📁 [API] Has files:', hasFiles);
+    console.log('📊 [API] Files count:', conversations[currentConversationId]?.files?.length || 0);
+    
     if (!hasFiles) {
+        console.error('❌ [API] No files uploaded');
         showError('Please upload an Excel file first');
         return;
     }
@@ -496,6 +559,9 @@ function sendMessage() {
     // Show typing indicator
     const typingIndicator = addTypingIndicator();
     
+    console.log('🌐 [API] Sending POST request to:', `${API_BASE_URL}/conversations/${currentConversationId}/query`);
+    console.log('📦 [API] Request payload:', { query: message });
+    
     // Send to API
     fetch(`${API_BASE_URL}/conversations/${currentConversationId}/query`, {
         method: 'POST',
@@ -505,6 +571,10 @@ function sendMessage() {
         body: JSON.stringify({ query: message })
     })
     .then(response => {
+        console.log('📥 [API] Query response received:', response);
+        console.log('📊 [API] Response status:', response.status, response.statusText);
+        console.log('✅ [API] Response ok:', response.ok);
+        
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -513,9 +583,57 @@ function sendMessage() {
     .then(data => {
         removeTypingIndicator(typingIndicator);
         
+        // Add comprehensive logging of API response
+        console.log('=== RAW API RESPONSE ===');
+        console.log('Full API response:', data);
+        console.log('API response stringified:', JSON.stringify(data, null, 2));
+        console.log('data.results exists:', !!data.results);
+        console.log('data.results type:', typeof data.results);
+        console.log('data.results is array:', Array.isArray(data.results));
+        console.log('data.success:', data.success);
+        
+        if (data.results) {
+            if (Array.isArray(data.results) && data.results.length > 0) {
+                console.log('📋 [API] Processing results array with length:', data.results.length);
+                data.results.forEach((result, resultIndex) => {
+                    console.log(`Result ${resultIndex}:`, result);
+                    console.log(`Result ${resultIndex} has table_info:`, !!result.table_info);
+                    console.log(`Result ${resultIndex} has flattened_table_info:`, !!result.flattened_table_info);
+                });
+            } else {
+                console.error('❌ [API] data.results is not an array:', data.results);
+                console.log('❌ [API] data.results constructor:', data.results.constructor.name);
+                console.log('❌ [API] data.results keys:', Object.keys(data.results));
+            }
+        }
+        
         let responseText = '';
         if (data.results) {
-            responseText = formatResponse(data.results);
+            // Check if data.results is a single object with table data
+            if (typeof data.results === 'object' && !Array.isArray(data.results)) {
+                // The backend sends: {results: {success: true, results: [actual_table_data]}}
+                // We need to extract the inner structure properly
+                console.log('🔄 [API] Converting single result object to array format');
+                const innerData = data.results;
+                if (innerData.results && Array.isArray(innerData.results)) {
+                    // Use the inner results array directly
+                    const convertedData = {
+                        success: innerData.success,
+                        results: innerData.results  // Use the actual results array
+                    };
+                    responseText = formatResponse(convertedData);
+                } else {
+                    // Fallback to original logic if structure is different
+                    const convertedData = {
+                        success: data.success || data.results.success,
+                        results: [data.results]
+                    };
+                    responseText = formatResponse(convertedData);
+                }
+            } else {
+                // Handle array format or pass through as-is
+                responseText = formatResponse(data);
+            }
         } else if (data.message) {
             responseText = data.message;
         } else {
@@ -526,26 +644,39 @@ function sendMessage() {
         addMessageToConversation(responseText, 'bot');
     })
     .catch(error => {
+        console.error('❌ [API] Query processing error:', error);
+        console.error('❌ [API] Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        
         removeTypingIndicator(typingIndicator);
         const errorMessage = `I apologize, but I encountered an error while processing your request: ${error.message}`;
         addMessageToUI(errorMessage, 'bot');
         addMessageToConversation(errorMessage, 'bot');
-        console.error('Error sending message:', error);
     })
     .finally(() => {
+        console.log('🏁 [API] Query processing completed');
         isSending = false;
         updateInputState();
     });
 }
 
 function formatResponse(result) {
+    console.log('formatResponse called with:', result);
+    console.log('formatResponse result type:', typeof result);
+    console.log('formatResponse result.success:', result.success);
+    console.log('formatResponse result.results:', result.results);
+    
     if (typeof result === 'string') {
         return result;
     }
     
     if (typeof result === 'object') {
-        // Handle new structured query response format
+        // Handle structured query response format (both array and converted single object)
         if (result.success !== undefined && result.results) {
+            console.log('🎯 [API] Processing structured response with formatQueryResults');
             return formatQueryResults(result);
         }
         
@@ -562,33 +693,155 @@ function formatResponse(result) {
             return JSON.stringify(result.data, null, 2);
         }
         
-        return JSON.stringify(result, null, 2);
+        // Fallback to JSON display for debugging
+        console.log('⚠️ [API] Falling back to JSON display for unrecognized format');
+        return `<pre>${JSON.stringify(result, null, 2)}</pre>`;
     }
     
     return String(result);
 }
 
 function formatQueryResults(response) {
+    console.log('formatQueryResults called with:', response);
+    
+    // Add comprehensive console logging for table data
+    console.log('=== FULL RESPONSE STRUCTURE ===');
+    console.log('Response:', JSON.stringify(response, null, 2));
+    
+    // ADDITIONAL DEBUGGING: Let's trace exactly what we receive
+    console.log('🔍 [DEBUG] response keys:', Object.keys(response));
+    console.log('🔍 [DEBUG] response.results type:', typeof response.results);
+    console.log('🔍 [DEBUG] response.results Array.isArray:', Array.isArray(response.results));
+    if (response.results && response.results.length > 0) {
+        console.log('🔍 [DEBUG] First result keys:', Object.keys(response.results[0]));
+        console.log('🔍 [DEBUG] First result flattened_table_info exists:', 'flattened_table_info' in response.results[0]);
+        console.log('🔍 [DEBUG] First result flattened_table_info value:', response.results[0].flattened_table_info);
+    }
+    
     if (!response.success) {
         return `<div class="error-message">Error: ${response.error || 'Unknown error'}</div>`;
     }
 
     let html = '<div class="query-results">';
     
-    if (response.results && response.results.length > 0) {
-        response.results.forEach(result => {
+    if (response.results && Array.isArray(response.results) && response.results.length > 0) {
+        console.log('📋 [API] Processing results array with length:', response.results.length);
+        response.results.forEach((result, resultIndex) => {
+            console.log(`=== RESULT ${resultIndex} ===`);
+            console.log('Result object:', result);
+            
+            // Log normal table info
+            if (result.table_info) {
+                console.log('=== NORMAL TABLE INFO ===');
+                console.log('Normal table_info:', JSON.stringify(result.table_info, null, 2));
+                console.log('Normal final_columns:', result.table_info.final_columns);
+                console.log('Normal data_rows:', result.table_info.data_rows);
+                console.log('Normal header_matrix:', result.table_info.header_matrix);
+            }
+            
+            // Log flattened table info
+            if (result.flattened_table_info) {
+                console.log('=== FLATTENED TABLE INFO ===');
+                console.log('Flattened table_info:', JSON.stringify(result.flattened_table_info, null, 2));
+                console.log('Flattened final_columns:', result.flattened_table_info.final_columns);
+                console.log('Flattened data_rows:', result.flattened_table_info.data_rows);
+                console.log('Flattened header_matrix:', result.flattened_table_info.header_matrix);
+            } else {
+                console.log('=== NO FLATTENED TABLE INFO ===');
+                console.log('flattened_table_info is:', result.flattened_table_info);
+            }
+            
             html += `<div class="result-section">`;
             html += `<h4>File: ${result.filename}</h4>`;
             html += `<p><strong>Query:</strong> ${result.query}</p>`;
             
             if (result.success && result.table_info) {
-                html += createHierarchicalHtmlTable(result.table_info, result.filename);
+                // Check if we have both normal and flattened table data
+                const hasFlattened = result.flattened_table_info && 
+                                   result.flattened_table_info.final_columns && 
+                                   result.flattened_table_info.final_columns.length > 0;
+                                   
+                console.log('HasFlattened:', hasFlattened);
+                
+                if (hasFlattened) {
+                    // Create container with toggle button for tables that have flattened version
+                    html += `<div class="table-toggle-container" data-result-index="${resultIndex}">`;
+                    html += `<div class="table-controls">`;
+                    html += `<button class="table-toggle-btn" data-mode="hierarchical" title="Switch to flattened headers">`;
+                    html += `<i class="fas fa-layer-group"></i> Hierarchical View`;
+                    html += `</button>`;
+                    html += `</div>`;
+                    
+                    // Normal table (initially visible)
+                    html += `<div class="table-view hierarchical-view active">`;
+                    html += createHierarchicalHtmlTable(result.table_info, result.filename);
+                    html += `</div>`;
+                    
+                    // Flattened table (initially hidden)
+                    html += `<div class="table-view flattened-view">`;
+                    html += createHierarchicalHtmlTable(result.flattened_table_info, result.filename);
+                    html += `</div>`;
+                    
+                    html += `</div>`;
+                } else {
+                    // Regular table without flattened option
+                    html += createHierarchicalHtmlTable(result.table_info, result.filename);
+                }
             } else {
                 html += `<p class="no-data">${result.message || 'No data found'}</p>`;
             }
             
             html += `</div>`;
         });
+    }
+    
+    // Handle case where results is not an array but still contains data
+    else if (response.results && !Array.isArray(response.results)) {
+        console.log('⚠️ [API] response.results is not an array, attempting to handle as single result');
+        console.log('📋 [API] Single result data:', response.results);
+        
+        // Try to treat it as a single result object
+        const result = response.results;
+        html += `<div class="result-section">`;
+        html += `<h4>File: ${result.filename || 'Unknown'}</h4>`;
+        html += `<p><strong>Query:</strong> ${result.query || 'Unknown'}</p>`;
+        
+        if (result.success && result.table_info) {
+            const hasFlattened = result.flattened_table_info && 
+                               result.flattened_table_info.final_columns && 
+                               result.flattened_table_info.final_columns.length > 0;
+                               
+            if (hasFlattened) {
+                html += `<div class="table-toggle-container" data-result-index="0">`;
+                html += `<div class="table-controls">`;
+                html += `<button class="table-toggle-btn" data-mode="hierarchical" title="Switch to flattened headers">`;
+                html += `<i class="fas fa-layer-group"></i> Hierarchical View`;
+                html += `</button>`;
+                html += `</div>`;
+                
+                html += `<div class="table-view hierarchical-view active">`;
+                html += createHierarchicalHtmlTable(result.table_info, result.filename);
+                html += `</div>`;
+                
+                html += `<div class="table-view flattened-view">`;
+                html += createHierarchicalHtmlTable(result.flattened_table_info, result.filename);
+                html += `</div>`;
+                
+                html += `</div>`;
+            } else {
+                html += createHierarchicalHtmlTable(result.table_info, result.filename);
+            }
+        } else {
+            html += `<p class="no-data">${result.message || 'No data found'}</p>`;
+        }
+        
+        html += `</div>`;
+    }
+    
+    // Handle case where no results are found
+    else {
+        console.log('⚠️ [API] No valid results found in response');
+        html += `<div class="no-data">No results found in the response.</div>`;
     }
     
     html += '</div>';
@@ -784,6 +1037,9 @@ function addMessageToUI(content, type, animate = true) {
             content.includes('<div class="info-message">')) {
             // This is HTML content from our table rendering, render as HTML
             messageContent.innerHTML = content;
+            
+            // Setup table toggle functionality for this message
+            setupTableToggleEvents(messageContent);
         } else if (content.includes('```')) {
             // Handle code blocks
             messageContent.innerHTML = formatCodeBlocks(escapeHtml(content));
@@ -813,6 +1069,36 @@ function addMessageToUI(content, type, animate = true) {
             scrollBtn.classList.add('show');
         }
     }
+}
+
+function setupTableToggleEvents(container) {
+    // Find all table toggle buttons in this container
+    const toggleButtons = container.querySelectorAll('.table-toggle-btn');
+    
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const toggleContainer = this.closest('.table-toggle-container');
+            const hierarchicalView = toggleContainer.querySelector('.hierarchical-view');
+            const flattenedView = toggleContainer.querySelector('.flattened-view');
+            const currentMode = this.getAttribute('data-mode');
+            
+            if (currentMode === 'hierarchical') {
+                // Switch to flattened view
+                hierarchicalView.classList.remove('active');
+                flattenedView.classList.add('active');
+                this.setAttribute('data-mode', 'flattened');
+                this.innerHTML = '<i class="fas fa-list"></i> Flattened View';
+                this.setAttribute('title', 'Switch to hierarchical headers');
+            } else {
+                // Switch to hierarchical view
+                flattenedView.classList.remove('active');
+                hierarchicalView.classList.add('active');
+                this.setAttribute('data-mode', 'hierarchical');
+                this.innerHTML = '<i class="fas fa-layer-group"></i> Hierarchical View';
+                this.setAttribute('title', 'Switch to flattened headers');
+            }
+        });
+    });
 }
 
 function escapeHtml(text) {
@@ -1037,22 +1323,38 @@ async function validateConversationsWithBackend() {
     const conversationIds = Object.keys(conversations);
     const validConversations = [];
     
+    console.log('🔍 [API] Validating conversations with backend');
+    console.log('📋 [API] Conversation IDs to validate:', conversationIds);
+    
     for (const id of conversationIds) {
         try {
+            console.log(`🔍 [API] Validating conversation: ${id}`);
+            console.log('🌐 [API] Sending GET request to:', `${API_BASE_URL}/conversations/${id}/validate`);
+            
             const response = await fetch(`${API_BASE_URL}/conversations/${id}/validate`);
+            
+            console.log(`📥 [API] Validation response for ${id}:`, response);
+            console.log(`📊 [API] Response status for ${id}:`, response.status, response.statusText);
+            console.log(`✅ [API] Response ok for ${id}:`, response.ok);
+            
             if (response.ok) {
+                console.log(`✅ [API] Conversation ${id} is valid`);
                 validConversations.push(conversations[id]);
             } else {
                 // Remove invalid conversation from frontend state
-                console.log(`Removing invalid conversation: ${id}`);
+                console.log(`❌ [API] Removing invalid conversation: ${id}`);
                 delete conversations[id];
             }
         } catch (error) {
-            console.error(`Error validating conversation ${id}:`, error);
+            console.error(`❌ [API] Error validating conversation ${id}:`, error);
             // Remove conversation that can't be validated
+            console.log(`🗑️ [API] Removing unvalidatable conversation: ${id}`);
             delete conversations[id];
         }
     }
+    
+    console.log('📋 [API] Valid conversations found:', validConversations.length);
+    console.log('✅ [API] Valid conversation IDs:', validConversations.map(c => c.id));
     
     // Update localStorage with cleaned conversations
     saveConversations();

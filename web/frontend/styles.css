@@ -993,13 +993,14 @@ body {
 }
 
 .hierarchical-table .top-level-header {
-    background: linear-gradient(to bottom, #444 0%, #333 100%);
+    background: linear-gradient(to bottom, #66bb6a 0%, #4caf50 100%);
     font-weight: 700;
     font-size: 1em;
     color: #ffffff;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #555;
+    border-bottom: 2px solid #388e3c;
+    transition: all 0.3s ease;
 }
 
 .hierarchical-table .sub-level-header {
@@ -1042,7 +1043,10 @@ body {
 }
 
 .hierarchical-table .top-level-header:hover {
-    background: linear-gradient(to bottom, #555 0%, #444 100%);
+    background: linear-gradient(to bottom, #81c784 0%, #66bb6a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+    border-bottom: 2px solid #4caf50;
 }
 
 .hierarchical-table td[data-type="number"] {
@@ -1125,21 +1129,21 @@ body {
 
 /* Enhanced styles for merged cells */
 .hierarchical-table .vertical-span {
-    background: linear-gradient(to bottom, #e3f2fd 0%, #bbdefb 100%);
+    background: linear-gradient(to bottom, #e8f5e8 0%, #c8e6c9 100%);
     font-weight: 700;
     text-align: center;
     vertical-align: middle;
-    border-left: 3px solid #2196f3;
-    box-shadow: inset 2px 0 4px rgba(33, 150, 243, 0.1);
+    border-left: 3px solid #1e7765;
+    box-shadow: inset 2px 0 4px rgba(76, 175, 80, 0.1);
     color: #000000 !important; /* Black font for merge cells */
 }
 
 .hierarchical-table .horizontal-span {
-    background: linear-gradient(to right, #f3e5f5 0%, #e1bee7 100%);
+    background: linear-gradient(to right, #e8f5e8 0%, #c8e6c9 100%);
     font-weight: 700;
     text-align: center;
-    border-top: 3px solid #9c27b0;
-    box-shadow: inset 0 2px 4px rgba(156, 39, 176, 0.1);
+    border-top: 3px solid #4caf50;
+    box-shadow: inset 0 2px 4px rgba(76, 175, 80, 0.1);
     color: #000000 !important; /* Black font for merge cells */
 }
 
@@ -1180,4 +1184,129 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Table Toggle Functionality */
+.table-toggle-container {
+    position: relative;
+    margin: 10px 0;
+}
+
+.table-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 0 5px;
+}
+
+.table-toggle-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-toggle-btn:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.table-toggle-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-toggle-btn i {
+    font-size: 0.9rem;
+}
+
+.table-view {
+    display: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.table-view.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Enhanced table container for toggle functionality */
+.table-toggle-container .table-container {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e6ed;
+}
+
+/* Flattened view specific styling */
+.flattened-view .hierarchical-table thead {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.flattened-view .hierarchical-table th {
+    background: #f1f3f4;
+    color: #495057;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    position: relative;
+}
+
+.flattened-view .hierarchical-table th::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+/* Hierarchical view specific styling */
+.hierarchical-view .hierarchical-table .top-level-header {
+    background: linear-gradient(135deg, #75dec4 0%, #75dec4 100%);
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.hierarchical-view .hierarchical-table .top-level-header:hover {
+    background: linear-gradient(135deg, #5ea5a1 0%, #5ea5a1 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.hierarchical-view .hierarchical-table .sub-level-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #495057;
+    font-weight: 500;
+}
+
+/* Responsive design for toggle button */
+@media (max-width: 768px) {
+    .table-toggle-btn {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+    }
+    
+    .table-toggle-btn i {
+        font-size: 0.8rem;
+    }
+    
+    .table-controls {
+        margin-bottom: 8px;
+    }
 } 
