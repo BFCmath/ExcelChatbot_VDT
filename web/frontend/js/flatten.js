@@ -8,12 +8,10 @@ function getTableDataFromResult(resultIndex) {
 
 // Store table data in global storage
 function storeTableData(resultIndex, tableInfo, filename) {
-    if (!window.AppConfig.globalTableData[resultIndex]) {
-        window.AppConfig.globalTableData[resultIndex] = {
-            ...tableInfo,
-            filename: filename
-        };
-    }
+    window.AppConfig.globalTableData[resultIndex] = {
+        ...tableInfo,
+        filename: filename
+    };
 }
 
 // Create flattened table data based on flatten level
