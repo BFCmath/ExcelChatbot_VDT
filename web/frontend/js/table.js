@@ -203,17 +203,13 @@ function setupTableToggleEvents(container) {
                 }
             }
             
-            // Update display text
-            levelDisplay.textContent = currentLevel === 0 ? 'Hierarchical' : `Flatten L${currentLevel}`;
-            levelDisplay.setAttribute('data-current-level', currentLevel);
-            
-            // Button enable/disable
+            // Update button states
             upBtn.disabled = currentLevel >= maxLevels;
             downBtn.disabled = currentLevel <= 0;
             
-            // Titles
-            upBtn.title = upBtn.disabled ? 'Maximum flatten reached' : 'Flatten one level further';
-            downBtn.title = downBtn.disabled ? 'Already hierarchical' : 'Return to previous hierarchy level';
+            // Update display text - but keep it hidden as per UI design
+            levelDisplay.textContent = currentLevel === 0 ? 'Hierarchical' : `Flatten L${currentLevel}`;
+            levelDisplay.setAttribute('data-current-level', currentLevel);
         }
         
         upBtn.addEventListener('click', function() {

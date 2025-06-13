@@ -254,6 +254,7 @@ body {
     min-width: 0; /* Allow flex item to shrink smaller than content */
     background-color: #2a2a2a;
     border-radius: 12px;
+    border: 2px solid transparent; /* Add 2px border for spacing */
     padding: 16px;
     position: relative;
     word-wrap: break-word;
@@ -632,7 +633,6 @@ body {
     /* Table container adjustments for mobile */
     .table-container {
         max-height: 50vh;
-        padding: 12px;
     }
     
     .table-wrapper {
@@ -648,7 +648,7 @@ body {
     .query-summary,
     .file-header,
     .table-container {
-        padding: 12px;
+        padding: 2px;
     }
 }
 
@@ -784,10 +784,11 @@ body {
 }
 
 .table-container {
-    padding: 16px;
+    padding: 2px;
     max-width: 100%;
     overflow: hidden; /* Contain within message boundaries */
     max-height: 70vh;
+    position: relative; /* For view mode controls positioning */
 }
 
 .table-info {
@@ -1190,24 +1191,31 @@ body {
 .table-flatten-container {
     position: relative;
     margin: 10px 0;
+    margin-left: 20px; /* Reduced space for narrower view mode controls */
 }
 
 .table-controls {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-end; /* Only filter controls on the right */
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 0px;
     padding: 0 5px;
+    position: relative; /* For absolute positioning of view mode controls */
 }
 
-.flatten-controls {
+.view-mode-controls {
+    position: absolute;
+    left: -30px; /* Closer to table - reduced gap */
+    top: 75px; /* Position right next to table headers */
     display: flex;
+    flex-direction: column; /* Stack vertically */
     align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    gap: 1px; /* Minimal gap between buttons */
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    z-index: 15; /* Higher z-index to appear above table */
 }
 
 .flatten-label {
@@ -1216,46 +1224,46 @@ body {
     font-weight: 500;
 }
 
-.flatten-btn {
+.view-mode-btn {
     background: linear-gradient(135deg, #75dec4 0%, #5ea5a1 100%);
     color: white;
     border: none;
-    border-radius: 4px;
-    width: 24px;
-    height: 24px;
+    border-radius: 3px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-.flatten-btn:hover:not(:disabled) {
+.view-mode-btn:hover:not(:disabled) {
     background: linear-gradient(135deg, #5ea5a1 0%, #4a8a87 100%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.flatten-btn:active:not(:disabled) {
+.view-mode-btn:active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.flatten-btn:disabled {
-    background: #444;
-    color: #666;
+.view-mode-btn:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
-.flatten-btn svg {
-    transition: all 0.3s ease;
+.view-mode-btn svg {
+    transition: all 0.2s ease;
 }
 
-.flatten-btn:hover:not(:disabled) svg {
-    transform: scale(1.1);
+.view-mode-btn:hover:not(:disabled) svg {
+    transform: scale(1.05);
 }
 
 .flatten-level-display {
@@ -1274,6 +1282,7 @@ body {
     opacity: 1;
     transform: translateY(0);
     transition: all 0.3s ease;
+    position: relative; /* For view mode controls positioning */
 }
 
 /* Enhanced table container for toggle functionality */
@@ -1331,8 +1340,7 @@ body {
 .table-filter-controls {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-left: 15px;
+    gap: 12px;
 }
 
 /* NaN Row Controls */
@@ -1413,42 +1421,38 @@ body {
     justify-content: flex-start;
 }
 
-/* Responsive design for flatten controls */
+/* Responsive design for view mode and filter controls */
 @media (max-width: 768px) {
-    .flatten-controls {
-        gap: 6px;
-        padding: 4px 8px;
+    .table-flatten-container {
+        margin-left: 0; /* Remove left margin on mobile */
     }
     
-    .flatten-label {
-        font-size: 0.8rem;
+    .view-mode-controls {
+        position: static; /* Reset positioning for mobile */
+        flex-direction: row; /* Horizontal layout on mobile */
+        gap: 3px;
+        padding: 3px 5px;
+        margin-bottom: 8px;
     }
     
-    .flatten-btn {
-        width: 20px;
-        height: 20px;
+    .view-mode-btn {
+        width: 16px;
+        height: 16px;
     }
     
-    .flatten-btn svg {
-        width: 10px;
-        height: 6px;
-    }
-    
-    .flatten-level-display {
-        font-size: 0.8rem;
-        min-width: 35px;
-        padding: 3px 6px;
+    .view-mode-btn svg {
+        width: 8px;
+        height: 5px;
     }
     
     .table-controls {
-        margin-bottom: 8px;
+        margin-bottom: 0px;
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 5px;
     }
     
     .table-filter-controls {
-        margin-left: 0;
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
