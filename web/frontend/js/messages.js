@@ -239,7 +239,10 @@ function formatQueryResults(response) {
                     
                     // Table container for dynamic content
                     html += `<div class="dynamic-table-view">`;
-                    html += window.TableManager.createHierarchicalHtmlTable(result.table_info, result.filename);
+                    console.log('📋 [FORMAT DEBUG] Creating initial table with result.table_info:', result.table_info);
+                    const initialTableHtml = window.TableManager.createHierarchicalHtmlTable(result.table_info, result.filename);
+                    console.log('📋 [FORMAT DEBUG] Initial table HTML:', initialTableHtml);
+                    html += initialTableHtml;
                     html += `</div>`;
                     
                     html += `</div>`;

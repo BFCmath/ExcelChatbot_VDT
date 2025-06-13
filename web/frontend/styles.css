@@ -406,6 +406,30 @@ body {
     transform: translateY(-1px);
 }
 
+.btn-alias {
+    background-color: #6366f1;
+    color: #ffffff;
+    border: 1px solid #6366f1;
+}
+
+.btn-alias:hover {
+    background-color: #5855eb;
+    border-color: #5855eb;
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: #ffffff;
+    border: 1px solid #ef4444;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    transform: translateY(-1px);
+}
+
 /* Modal Styles */
 .modal {
     display: none;
@@ -509,6 +533,108 @@ body {
     transition: width 0.3s ease;
 }
 
+/* Alias Manager Styles */
+.alias-status {
+    margin-bottom: 20px;
+}
+
+.status-loading {
+    text-align: center;
+    padding: 20px;
+    color: #888;
+}
+
+.status-loading i {
+    font-size: 24px;
+    color: #10a37f;
+    margin-bottom: 10px;
+}
+
+.alias-section {
+    margin-bottom: 20px;
+}
+
+.alias-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.alias-icon {
+    font-size: 64px;
+    color: #6366f1;
+    margin-bottom: 20px;
+}
+
+.alias-empty-state h4 {
+    color: #ffffff;
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+.alias-empty-state p {
+    color: #888;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.alias-current-file {
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 20px;
+    background-color: #2a2a2a;
+}
+
+.alias-file-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.alias-file-icon {
+    font-size: 32px;
+    color: #10a37f;
+    margin-top: 4px;
+}
+
+.alias-file-details h4 {
+    color: #ffffff;
+    font-size: 16px;
+    margin-bottom: 8px;
+    word-break: break-word;
+}
+
+.alias-file-details p {
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.alias-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.alias-upload-area {
+    margin-top: 20px;
+    border-color: #6366f1;
+}
+
+.alias-upload-area:hover {
+    border-color: #5855eb;
+    background-color: rgba(99, 102, 241, 0.05);
+}
+
+.alias-upload-area.dragover {
+    border-color: #5855eb;
+    background-color: rgba(99, 102, 241, 0.1);
+}
+
+.alias-upload-area .upload-icon {
+    color: #6366f1;
+}
+
 /* Loading Overlay */
 .loading-overlay {
     position: fixed;
@@ -596,6 +722,25 @@ body {
     .modal-content {
         width: 95%;
         margin: 10% auto;
+    }
+    
+    .chat-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .chat-actions .btn {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+    
+    .alias-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .alias-actions .btn {
+        width: 100%;
     }
     
     /* Chat input and layout adjustments */

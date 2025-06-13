@@ -4,10 +4,14 @@ console.log('🚀 Loading dom.js...');
 // Cache DOM elements for better performance
 function initializeElements() {
     const elements = [
-        'new-conversation-btn', 'upload-file-btn', 'send-btn', 'message-input',
+        'new-conversation-btn', 'upload-file-btn', 'alias-manager-btn', 'send-btn', 'message-input',
         'conversations-container', 'messages-container', 'uploaded-files',
         'current-conversation-title', 'current-conversation-id',
         'upload-modal', 'upload-area', 'file-input', 'upload-progress',
+        'alias-modal', 'alias-status', 'alias-no-file', 'alias-has-file', 
+        'alias-upload-area', 'alias-upload-progress', 'alias-file-input',
+        'alias-filename', 'alias-upload-date', 'alias-file-size',
+        'upload-alias-btn', 'replace-alias-btn', 'remove-alias-btn', 'choose-alias-file-btn',
         'loading-overlay', 'scroll-to-bottom-btn'
     ];
     

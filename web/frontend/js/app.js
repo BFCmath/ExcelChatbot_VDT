@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'TableManager',
         'MessageManager',
         'UploadManager',
+        'AliasManager',
         'ConversationManager',
         'APIManager',
         'EventManager'

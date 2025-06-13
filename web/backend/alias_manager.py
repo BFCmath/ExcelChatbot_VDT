@@ -176,21 +176,27 @@ class AliasFileManager:
             return self._remove_current_alias_file()
     
     def _remove_current_alias_file(self) -> bool:
-        """Internal method to remove current alias file."""
+        """
+        Internal method to logically remove current alias file.
+        Note: Files are not physically deleted to avoid file access conflicts
+        when they're being used by other processes (LLM, pandas, etc.).
+        Instead, we just clear the references to make them unavailable.
+        """
         if not self._current_alias_file:
             return False
         
         try:
-            if os.path.exists(self._current_alias_file):
-                os.remove(self._current_alias_file)
-                logger.info(f"Removed alias file: {self._current_alias_file}")
+            # Log the logical removal
+            logger.info(f"Logically removing alias file reference: {self._current_alias_file}")
+            logger.info("Note: Physical file is kept to avoid process conflicts")
             
+            # Clear references to make file unavailable
             self._current_alias_file = None
             self._alias_file_info = None
             return True
             
         except Exception as e:
-            logger.error(f"Error removing alias file: {e}")
+            logger.error(f"Error removing alias file reference: {e}")
             return False
     
     def get_system_status(self) -> dict:

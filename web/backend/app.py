@@ -1,7 +1,7 @@
 import os
 import shutil
 import logging
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 import asyncio
 from contextlib import asynccontextmanager
@@ -115,7 +115,7 @@ class AliasFileResponse(BaseModel):
 
 class AliasSystemStatus(BaseModel):
     has_alias_file: bool
-    alias_file_info: dict = None
+    alias_file_info: Optional[dict] = None
     storage_directory: str
     system_ready: bool
 
@@ -140,10 +140,11 @@ async def get_alias_system_status():
     try:
         alias_manager = get_alias_manager()
         status = alias_manager.get_system_status()
+        logger.info(f"Alias system status: {status}")
         return AliasSystemStatus(**status)
     except Exception as e:
-        logger.error(f"Failed to get alias system status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get alias system status")
+        logger.error(f"Failed to get alias system status: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to get alias system status: {str(e)}")
 
 @app.post("/alias/upload", response_model=AliasFileResponse)
 async def upload_alias_file(
@@ -155,7 +156,7 @@ async def upload_alias_file(
     """
     try:
         # Validate file
-        FileValidator.validate_single_file(file)
+        FileValidator.validate_file(file)
         
         # Check if it's an Excel file
         if not file.filename.lower().endswith(('.xlsx', '.xls')):

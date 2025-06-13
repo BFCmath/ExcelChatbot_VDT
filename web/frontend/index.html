@@ -39,6 +39,9 @@
                     <button id="upload-file-btn" class="btn btn-secondary">
                         <i class="fas fa-upload"></i> Upload Excel File
                     </button>
+                    <button id="alias-manager-btn" class="btn btn-alias">
+                        <i class="fas fa-language"></i> Alias Manager
+                    </button>
                 </div>
             </div>
 
@@ -110,6 +113,72 @@
         </div>
     </div>
 
+    <!-- Alias Manager Modal -->
+    <div id="alias-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Alias Manager</h3>
+                <span class="close alias-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="alias-status" class="alias-status">
+                    <div class="status-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Checking alias status...</p>
+                    </div>
+                </div>
+                
+                <div id="alias-no-file" class="alias-section" style="display: none;">
+                    <div class="alias-empty-state">
+                        <i class="fas fa-language alias-icon"></i>
+                        <h4>No Alias File Available</h4>
+                        <p>Upload an alias Excel file to enable query enrichment across all conversations.</p>
+                        <button class="btn btn-primary" id="upload-alias-btn">
+                            <i class="fas fa-upload"></i> Upload Alias File
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="alias-has-file" class="alias-section" style="display: none;">
+                    <div class="alias-current-file">
+                        <div class="alias-file-info">
+                            <i class="fas fa-file-excel alias-file-icon"></i>
+                            <div class="alias-file-details">
+                                <h4 id="alias-filename">Loading...</h4>
+                                <p id="alias-upload-date">Uploaded: Loading...</p>
+                                <p id="alias-file-size">Size: Loading...</p>
+                            </div>
+                        </div>
+                        <div class="alias-actions">
+                            <button class="btn btn-secondary" id="replace-alias-btn">
+                                <i class="fas fa-sync"></i> Replace File
+                            </button>
+                            <button class="btn btn-danger" id="remove-alias-btn">
+                                <i class="fas fa-trash"></i> Remove File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="alias-upload-area" class="upload-area alias-upload-area" style="display: none;">
+                    <i class="fas fa-language upload-icon"></i>
+                    <p>Drag and drop your alias Excel file here, or click to browse</p>
+                    <input type="file" id="alias-file-input" accept=".xlsx,.xls" hidden>
+                    <button class="btn btn-secondary" id="choose-alias-file-btn">
+                        Choose Alias File
+                    </button>
+                </div>
+                
+                <div id="alias-upload-progress" class="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <p id="alias-upload-text">Uploading alias file...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
         <div class="loading-spinner">
@@ -128,6 +197,7 @@
     <script src="js/table.js"></script>
     <script src="js/messages.js"></script>
     <script src="js/upload.js"></script>
+    <script src="js/alias.js"></script>
     <script src="js/conversation.js"></script>
     <script src="js/api.js"></script>
     <script src="js/events.js"></script>

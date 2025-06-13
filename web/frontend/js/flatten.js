@@ -969,9 +969,12 @@ function identifyNaNRows(tableData) {
     const featureRowCount = tableData.feature_rows.length;
     const nanRows = [];
     
+
+    
     tableData.data_rows.forEach((row, rowIndex) => {
         // Only check columns beyond the feature row columns
         const dataColumns = row.slice(featureRowCount);
+
         
         // Check if all data columns are null, undefined, empty string, or "—"
         const isNaNRow = dataColumns.every(cell => 

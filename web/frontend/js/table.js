@@ -159,26 +159,35 @@ function setupTableToggleEvents(container) {
         let currentLevel = 0;
         
         function updateTable() {
+            console.log('🔄 [TABLE DEBUG] updateTable called, current level:', currentLevel);
             let flattenedData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+            console.log('🔄 [TABLE DEBUG] flattenedData after createFlattenedTableData:', flattenedData);
             
             // Check feature column toggle state
             const featureColCheckbox = flattenContainer.querySelector('.feature-col-checkbox');
             const showAllFeatureCols = featureColCheckbox ? featureColCheckbox.checked : false;
+            console.log('🔄 [TABLE DEBUG] showAllFeatureCols:', showAllFeatureCols);
             
             // Apply feature column filtering if needed
             if (!showAllFeatureCols) {
+                console.log('🔄 [TABLE DEBUG] Applying redundant column filtering...');
                 flattenedData = window.FlattenManager.filterTableDataByRedundantColumns(flattenedData, true);
+                console.log('🔄 [TABLE DEBUG] flattenedData after redundant column filtering:', flattenedData);
             }
             
             // Check NaN row toggle state
             const nanRowCheckbox = flattenContainer.querySelector('.nan-row-checkbox');
             const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : false;
+            console.log('🔄 [TABLE DEBUG] showNaNRows:', showNaNRows);
             
             // Apply NaN row filtering if needed
             if (!showNaNRows) {
+                console.log('🔄 [TABLE DEBUG] Applying NaN row filtering...');
                 flattenedData = window.FlattenManager.filterTableDataByNaNRows(flattenedData, true);
+                console.log('🔄 [TABLE DEBUG] flattenedData after NaN row filtering:', flattenedData);
             }
             
+            console.log('🔄 [TABLE DEBUG] Final flattenedData before createHierarchicalHtmlTable:', flattenedData);
             const newTableHtml = createHierarchicalHtmlTable(flattenedData, tableData.filename || 'Table');
             tableView.innerHTML = newTableHtml;
             
@@ -246,7 +255,9 @@ function setupNaNRowToggle(container) {
     if (!tableData) return;
     
     function updateTable() {
+        console.log('🔄 [NaN TOGGLE DEBUG] updateTable called');
         const showNaNRows = nanRowCheckbox.checked;
+        console.log('🔄 [NaN TOGGLE DEBUG] showNaNRows:', showNaNRows);
         
         // Get current flatten level (if applicable)
         let currentLevel = 0;
@@ -254,24 +265,32 @@ function setupNaNRowToggle(container) {
         if (levelDisplay) {
             currentLevel = parseInt(levelDisplay.getAttribute('data-current-level')) || 0;
         }
+        console.log('🔄 [NaN TOGGLE DEBUG] currentLevel:', currentLevel);
         
         // Get flattened table data
         let displayTableData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+        console.log('🔄 [NaN TOGGLE DEBUG] displayTableData after createFlattenedTableData:', displayTableData);
         
         // Check feature column toggle state
         const featureColCheckbox = container.querySelector('.feature-col-checkbox');
         const showAllFeatureCols = featureColCheckbox ? featureColCheckbox.checked : false;
+        console.log('🔄 [NaN TOGGLE DEBUG] showAllFeatureCols:', showAllFeatureCols);
         
         // Apply feature column filtering if needed
         if (!showAllFeatureCols) {
+            console.log('🔄 [NaN TOGGLE DEBUG] Applying redundant column filtering...');
             displayTableData = window.FlattenManager.filterTableDataByRedundantColumns(displayTableData, true);
+            console.log('🔄 [NaN TOGGLE DEBUG] displayTableData after redundant column filtering:', displayTableData);
         }
         
         // Apply NaN row filtering
         if (!showNaNRows) {
+            console.log('🔄 [NaN TOGGLE DEBUG] Applying NaN row filtering...');
             displayTableData = window.FlattenManager.filterTableDataByNaNRows(displayTableData, true);
+            console.log('🔄 [NaN TOGGLE DEBUG] displayTableData after NaN row filtering:', displayTableData);
         }
         
+        console.log('🔄 [NaN TOGGLE DEBUG] Final displayTableData before createHierarchicalHtmlTable:', displayTableData);
         // Update table HTML
         const newTableHtml = createHierarchicalHtmlTable(displayTableData, tableData.filename || 'Table');
         tableView.innerHTML = newTableHtml;
