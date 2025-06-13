@@ -1186,8 +1186,8 @@ body {
     justify-content: center;
 }
 
-/* Table Toggle Functionality */
-.table-toggle-container {
+/* Table Flatten Functionality */
+.table-flatten-container {
     position: relative;
     margin: 10px 0;
 }
@@ -1200,48 +1200,80 @@ body {
     padding: 0 5px;
 }
 
-.table-toggle-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.flatten-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.flatten-label {
+    font-size: 0.85rem;
+    color: #cccccc;
+    font-weight: 500;
+}
+
+.flatten-btn {
+    background: linear-gradient(135deg, #75dec4 0%, #5ea5a1 100%);
     color: white;
     border: none;
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    font-weight: 500;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.table-toggle-btn:hover {
-    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+.flatten-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5ea5a1 0%, #4a8a87 100%);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.table-toggle-btn:active {
+.flatten-btn:active:not(:disabled) {
     transform: translateY(0);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.table-toggle-btn i {
-    font-size: 0.9rem;
+.flatten-btn:disabled {
+    background: #444;
+    color: #666;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
-.table-view {
-    display: none;
-    opacity: 0;
-    transform: translateY(10px);
+.flatten-btn svg {
     transition: all 0.3s ease;
 }
 
-.table-view.active {
-    display: block;
+.flatten-btn:hover:not(:disabled) svg {
+    transform: scale(1.1);
+}
+
+.flatten-level-display {
+    font-size: 0.85rem;
+    color: #ffffff;
+    font-weight: 600;
+    min-width: 40px;
+    text-align: center;
+    background: rgba(117, 222, 196, 0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(117, 222, 196, 0.3);
+}
+
+.dynamic-table-view {
     opacity: 1;
     transform: translateY(0);
+    transition: all 0.3s ease;
 }
 
 /* Enhanced table container for toggle functionality */
@@ -1295,15 +1327,31 @@ body {
     font-weight: 500;
 }
 
-/* Responsive design for toggle button */
+/* Responsive design for flatten controls */
 @media (max-width: 768px) {
-    .table-toggle-btn {
-        font-size: 0.8rem;
-        padding: 6px 10px;
+    .flatten-controls {
+        gap: 6px;
+        padding: 4px 8px;
     }
     
-    .table-toggle-btn i {
+    .flatten-label {
         font-size: 0.8rem;
+    }
+    
+    .flatten-btn {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .flatten-btn svg {
+        width: 10px;
+        height: 6px;
+    }
+    
+    .flatten-level-display {
+        font-size: 0.8rem;
+        min-width: 35px;
+        padding: 3px 6px;
     }
     
     .table-controls {
