@@ -1327,6 +1327,48 @@ body {
     font-weight: 500;
 }
 
+/* NaN Row Controls */
+.nan-row-controls {
+    display: flex;
+    align-items: center;
+    margin-left: 15px;
+}
+
+.nan-row-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.nan-row-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.nan-row-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #10a37f;
+}
+
+.nan-row-label {
+    font-size: 0.85rem;
+    color: #cccccc;
+    font-weight: 500;
+    user-select: none;
+}
+
+.table-simple-container .table-controls {
+    justify-content: flex-start;
+}
+
 /* Responsive design for flatten controls */
 @media (max-width: 768px) {
     .flatten-controls {
@@ -1356,5 +1398,20 @@ body {
     
     .table-controls {
         margin-bottom: 8px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .nan-row-controls {
+        margin-left: 0;
+    }
+    
+    .nan-row-toggle {
+        padding: 4px 8px;
+    }
+    
+    .nan-row-label {
+        font-size: 0.8rem;
     }
 } 

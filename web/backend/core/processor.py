@@ -281,7 +281,9 @@ class MultiFileProcessor:
                     "query": sub_query,
                     "success": True,
                     "table_info": table_structures["normal_table"],  # Keep backward compatibility
-                    "flattened_table_info": table_structures["flattened_table"]  # Add flattened table
+                    "flattened_table_info": table_structures["flattened_table"],  # Add flattened table
+                    "feature_rows": self.file_metadata[file_path].feature_name_result["feature_rows"],  # Add feature rows info
+                    "feature_cols": self.file_metadata[file_path].feature_name_result["feature_cols"]   # Add feature cols info
                 }
                 
                 logger.info(f"✅ Result entry keys: {list(result_entry.keys())}")

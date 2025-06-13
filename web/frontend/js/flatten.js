@@ -7,10 +7,12 @@ function getTableDataFromResult(resultIndex) {
 }
 
 // Store table data in global storage
-function storeTableData(resultIndex, tableInfo, filename) {
+function storeTableData(resultIndex, tableInfo, filename, featureRows = [], featureCols = []) {
     window.AppConfig.globalTableData[resultIndex] = {
         ...tableInfo,
-        filename: filename
+        filename: filename,
+        feature_rows: featureRows,
+        feature_cols: featureCols
     };
 }
 
@@ -784,6 +786,62 @@ function testFlattenLogic() {
     console.log('\n✅ Test completed');
 }
 
+// Identify NaN rows (rows where all data columns are null/undefined)
+function identifyNaNRows(tableData) {
+    if (!tableData || !tableData.data_rows || !tableData.feature_rows) {
+        return [];
+    }
+    
+    const featureRowCount = tableData.feature_rows.length;
+    const nanRows = [];
+    
+    tableData.data_rows.forEach((row, rowIndex) => {
+        // Only check columns beyond the feature row columns
+        const dataColumns = row.slice(featureRowCount);
+        
+        // Check if all data columns are null, undefined, empty string, or "—"
+        const isNaNRow = dataColumns.every(cell => 
+            cell === null || 
+            cell === undefined || 
+            cell === '' || 
+            cell === '—' ||
+            (typeof cell === 'string' && cell.trim() === '') ||
+            (typeof cell === 'number' && isNaN(cell))
+        );
+        
+        if (isNaNRow) {
+            nanRows.push(rowIndex);
+        }
+    });
+    
+    return nanRows;
+}
+
+// Filter table data to hide/show NaN rows
+function filterTableDataByNaNRows(tableData, hideNaNRows = true) {
+    if (!tableData || !hideNaNRows) {
+        return tableData;
+    }
+    
+    const nanRows = identifyNaNRows(tableData);
+    if (nanRows.length === 0) {
+        return tableData;
+    }
+    
+    // Filter out NaN rows
+    const filteredDataRows = tableData.data_rows.filter((row, index) => 
+        !nanRows.includes(index)
+    );
+    
+    return {
+        ...tableData,
+        data_rows: filteredDataRows,
+        row_count: filteredDataRows.length,
+        nan_rows_hidden: nanRows.length,
+        original_row_count: tableData.data_rows.length
+    };
+}
+
 // Export flattening functions
 window.FlattenManager = {
     getTableDataFromResult,
@@ -802,7 +860,10 @@ window.FlattenManager = {
     calculateIntelligentColspan,
     // New debug functions
     testMultiindexConversion,
-    analyzeColumnStructure
+    analyzeColumnStructure,
+    // NaN row handling functions
+    identifyNaNRows,
+    filterTableDataByNaNRows
 };
 
 // Test multiindex conversion specifically

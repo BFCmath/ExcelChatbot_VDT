@@ -134,6 +134,12 @@ function formatTableData(data) {
 
 // Setup table flatten controls event handlers
 function setupTableToggleEvents(container) {
+    const tableContainers = container.querySelectorAll('.table-flatten-container, .table-simple-container');
+    
+    tableContainers.forEach(tableContainer => {
+        setupNaNRowToggle(tableContainer);
+    });
+    
     const flattenContainers = container.querySelectorAll('.table-flatten-container');
     
     flattenContainers.forEach(flattenContainer => {
@@ -152,9 +158,30 @@ function setupTableToggleEvents(container) {
         let currentLevel = 0;
         
         function updateTable() {
-            const flattenedData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+            let flattenedData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+            
+            // Check NaN row toggle state
+            const nanRowCheckbox = flattenContainer.querySelector('.nan-row-checkbox');
+            const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : true;
+            
+            // Apply NaN row filtering if needed
+            if (!showNaNRows) {
+                flattenedData = window.FlattenManager.filterTableDataByNaNRows(flattenedData, true);
+            }
+            
             const newTableHtml = createHierarchicalHtmlTable(flattenedData, tableData.filename || 'Table');
             tableView.innerHTML = newTableHtml;
+            
+            // Update info text if NaN rows are hidden
+            if (!showNaNRows && flattenedData.nan_rows_hidden) {
+                const tableContainer = tableView.querySelector('.table-container');
+                if (tableContainer) {
+                    const infoDiv = tableContainer.querySelector('.table-info');
+                    if (infoDiv) {
+                        infoDiv.innerHTML += ` (${flattenedData.nan_rows_hidden} NaN rows hidden)`;
+                    }
+                }
+            }
             
             // Update display text
             levelDisplay.textContent = currentLevel === 0 ? 'Hierarchical' : `Flatten L${currentLevel}`;
@@ -188,11 +215,67 @@ function setupTableToggleEvents(container) {
     });
 }
 
+// Setup NaN row toggle functionality
+function setupNaNRowToggle(container) {
+    const nanRowCheckbox = container.querySelector('.nan-row-checkbox');
+    if (!nanRowCheckbox) return;
+    
+    const resultIndex = parseInt(container.getAttribute('data-result-index'));
+    const tableView = container.querySelector('.dynamic-table-view');
+    
+    if (!tableView) return;
+    
+    // Get the original table data
+    const tableData = window.FlattenManager.getTableDataFromResult(resultIndex);
+    if (!tableData) return;
+    
+    function updateTable() {
+        const showNaNRows = nanRowCheckbox.checked;
+        
+        // Get current flatten level (if applicable)
+        let currentLevel = 0;
+        const levelDisplay = container.querySelector('.flatten-level-display');
+        if (levelDisplay) {
+            currentLevel = parseInt(levelDisplay.getAttribute('data-current-level')) || 0;
+        }
+        
+        // Get flattened table data
+        let displayTableData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+        
+        // Apply NaN row filtering
+        if (!showNaNRows) {
+            displayTableData = window.FlattenManager.filterTableDataByNaNRows(displayTableData, true);
+        }
+        
+        // Update table HTML
+        const newTableHtml = createHierarchicalHtmlTable(displayTableData, tableData.filename || 'Table');
+        tableView.innerHTML = newTableHtml;
+        
+        // Update info text if NaN rows are hidden
+        if (!showNaNRows && displayTableData.nan_rows_hidden) {
+            const tableContainer = tableView.querySelector('.table-container');
+            if (tableContainer) {
+                const infoDiv = tableContainer.querySelector('.table-info');
+                if (infoDiv) {
+                    infoDiv.innerHTML += ` (${displayTableData.nan_rows_hidden} NaN rows hidden)`;
+                }
+            }
+        }
+    }
+    
+    // Add event listener for NaN row toggle
+    nanRowCheckbox.addEventListener('change', updateTable);
+    
+    // Initialize with NaN rows hidden (checkbox unchecked by default)
+    updateTable();
+}
+
 // Export table functions
 window.TableManager = {
     createHierarchicalHtmlTable,
     formatTableData,
     setupTableToggleEvents,
+    setupNaNRowToggle,
     debugHeaders: function(resultIndex, level) {
         return window.FlattenManager.debugHeaders(resultIndex, level);
     }

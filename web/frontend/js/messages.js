@@ -189,7 +189,13 @@ function formatQueryResults(response) {
             
             // Store table data for flattening functionality
             if (result.table_info) {
-                window.FlattenManager.storeTableData(resultIndex, result.table_info, result.filename);
+                window.FlattenManager.storeTableData(
+                    resultIndex, 
+                    result.table_info, 
+                    result.filename,
+                    result.feature_rows || [],
+                    result.feature_cols || []
+                );
             }
             
             if (result.success && result.table_info) {
@@ -216,6 +222,12 @@ function formatQueryResults(response) {
                     html += `</svg>`;
                     html += `</button>`;
                     html += `</div>`;
+                    html += `<div class="nan-row-controls">`;
+                    html += `<label class="nan-row-toggle">`;
+                    html += `<input type="checkbox" class="nan-row-checkbox" data-result-index="${resultIndex}">`;
+                    html += `<span class="nan-row-label">Show NaN Rows</span>`;
+                    html += `</label>`;
+                    html += `</div>`;
                     html += `</div>`;
                     
                     // Table container for dynamic content
@@ -225,8 +237,20 @@ function formatQueryResults(response) {
                     
                     html += `</div>`;
                 } else {
-                    // Regular table without hierarchy
+                    // Regular table without hierarchy - still add NaN row controls
+                    html += `<div class="table-simple-container" data-result-index="${resultIndex}">`;
+                    html += `<div class="table-controls">`;
+                    html += `<div class="nan-row-controls">`;
+                    html += `<label class="nan-row-toggle">`;
+                    html += `<input type="checkbox" class="nan-row-checkbox" data-result-index="${resultIndex}">`;
+                    html += `<span class="nan-row-label">Show NaN Rows</span>`;
+                    html += `</label>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                    html += `<div class="dynamic-table-view">`;
                     html += window.TableManager.createHierarchicalHtmlTable(result.table_info, result.filename);
+                    html += `</div>`;
+                    html += `</div>`;
                 }
             } else {
                 html += `<p class="no-data">${result.message || 'No data found'}</p>`;
