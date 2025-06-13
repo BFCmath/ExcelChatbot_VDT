@@ -2,9 +2,25 @@
 
 This document provides a comprehensive overview of all JavaScript files in the Excel Chatbot frontend application, explaining the purpose of each file and all functions within them.
 
+## Recent Updates (2025-06-14)
+
+### Major Features Added:
+- **Alias Management System**: Complete system-wide alias file management with drag-drop upload, progress tracking, and modal interface
+- **Query Enrichment**: Automatic query enhancement using alias dictionaries via LLM integration
+
+### Critical Bug Fixes:
+- **Table Display Fix**: Resolved "No data to display" issue where tables showed empty even with valid data
+- **Improved Data Filtering**: Enhanced logic to treat "Undefined" as meaningful data, not empty values
+- **User-Controlled Filtering**: Removed aggressive auto-filtering; users now control filtering via checkboxes
+
+### UX Improvements:
+- **Optimized Default View**: Tables now default to nearly flattened view (max(maxLevels - 2, 0)) to save space
+- **Enhanced Error Handling**: Better error messages and graceful degradation
+- **Mobile Responsive**: Alias management works across all device sizes
+
 ## File Structure Overview
 
-The frontend JavaScript is organized into 12 modular files, each with a specific responsibility:
+The frontend JavaScript is organized into 13 modular files, each with a specific responsibility:
 
 1. **config.js** - Application configuration and global state
 2. **utils.js** - Utility functions used across the application
@@ -17,7 +33,8 @@ The frontend JavaScript is organized into 12 modular files, each with a specific
 9. **table.js** - Table rendering and display
 10. **flatten.js** - Table flattening logic
 11. **flatten_debug.js** - Debug system for flattening operations
-12. **app.js** - Main application initialization
+12. **alias.js** - Alias management functionality
+13. **app.js** - Main application initialization
 
 ---
 
@@ -386,9 +403,16 @@ The frontend JavaScript is organized into 12 modular files, each with a specific
 
 ---
 
-## 9. table.js (7.4KB, 201 lines)
+## 9. table.js (15KB, 394 lines)
 
 **Purpose**: Renders hierarchical HTML tables and manages table flattening controls.
+
+### Recent Bug Fixes (2025-06-14):
+- **Fixed "No data to display" issue**: Tables were showing empty even when data existed
+- **Improved filtering logic**: "Undefined" values are now treated as meaningful data, not NaN
+- **Removed aggressive auto-filtering**: Initial table display now shows unfiltered data
+- **Enhanced user control**: Filtering is now user-controlled via checkboxes only
+- **Optimized default view**: Default flatten level is now max(maxLevels - 2, 0) to save space by showing nearly flattened tables
 
 ### Functions:
 
@@ -402,6 +426,7 @@ The frontend JavaScript is organized into 12 modular files, each with a specific
   - Applies appropriate CSS classes for styling
   - Limits display to first 100 rows for performance
   - Wraps table for horizontal scrolling
+- **Bug Fix**: Now properly validates data existence before showing "No data to display"
 
 #### `formatTableData(data)`
 - **Purpose**: Legacy support for simple array data
@@ -428,9 +453,14 @@ The frontend JavaScript is organized into 12 modular files, each with a specific
 
 ---
 
-## 10. flatten.js (35KB, 891 lines)
+## 10. flatten.js (45KB, 1173 lines)
 
 **Purpose**: Implements complex table flattening algorithms to transform hierarchical tables.
+
+### Recent Bug Fixes (2025-06-14):
+- **Fixed NaN row identification**: "Undefined" values are now treated as meaningful data
+- **Improved filtering logic**: More precise identification of truly empty rows
+- **Enhanced user control**: Filtering is now optional and user-controlled
 
 ### Core Functions:
 
@@ -647,7 +677,91 @@ The frontend JavaScript is organized into 12 modular files, each with a specific
 
 ---
 
-## 12. app.js (2.4KB, 84 lines)
+## 12. alias.js (11KB, 342 lines)
+
+**Purpose**: Manages system-wide alias file functionality for query enrichment.
+
+### Core Features:
+- **System-level alias management**: One alias file shared across all conversations
+- **File upload with progress tracking**: Visual progress bars and drag-drop support
+- **Modal interface**: Comprehensive modal with multiple states
+- **API integration**: Full backend communication for alias operations
+- **State management**: Handles loading, upload, and removal states
+
+### Functions:
+
+#### `openAliasModal()`
+- **Purpose**: Opens the alias management modal
+- **Process**: Fetches current system status and displays appropriate interface
+- **Features**: Loading state, error handling, status checking
+
+#### `closeAliasModal()`
+- **Purpose**: Closes the alias modal and resets state
+- **Features**: Clean state reset, removes event listeners
+
+#### `resetAliasModal()`
+- **Purpose**: Resets modal to initial state
+- **Actions**: Clears progress, removes drag states, hides upload areas
+
+#### `updateAliasModalContent(status)`
+- **Purpose**: Updates modal content based on system status
+- **Parameters**: `status` (object) - System alias status from backend
+- **States Handled**:
+  - No file state: Shows upload invitation
+  - File present state: Shows file details and management options
+  - Loading state: Shows spinner and loading message
+
+#### `handleAliasFileSelect(e)`
+- **Purpose**: Handles file selection from input or drag-drop
+- **Parameters**: `e` (event) - File selection event
+- **Validation**: File type (.xlsx, .xls) and size checking
+
+#### `uploadAliasFile(file)`
+- **Purpose**: Uploads alias file to backend with progress tracking
+- **Parameters**: `file` (File object)
+- **Features**:
+  - Progress bar with percentage updates
+  - Error handling and user feedback
+  - Success confirmation and modal refresh
+  - File validation and size checking
+
+#### `removeAliasFile()`
+- **Purpose**: Removes current alias file from system
+- **Process**: Confirms with user, calls backend delete endpoint
+- **Features**: Confirmation dialog, error handling, status refresh
+
+#### `updateAliasProgress(percent)`
+- **Purpose**: Updates upload progress bar
+- **Parameters**: `percent` (number) - Progress percentage (0-100)
+
+#### `showAliasError(message)`
+- **Purpose**: Displays error messages in modal
+- **Parameters**: `message` (string) - Error message to display
+
+#### `showAliasSuccess(message)`
+- **Purpose**: Displays success messages in modal
+- **Parameters**: `message` (string) - Success message to display
+
+### Drag & Drop Handlers:
+- `handleAliasDragOver(e)`: Handles drag over events with visual feedback
+- `handleAliasDragLeave(e)`: Handles drag leave events, removes visual feedback
+- `handleAliasDrop(e)`: Handles file drop events, triggers upload
+
+### API Integration:
+- **GET /alias/status**: Check system alias status
+- **POST /alias/upload**: Upload new alias file
+- **DELETE /alias**: Remove current alias file
+
+### State Management:
+- **No File State**: Shows upload interface with drag-drop area
+- **File Present State**: Shows file info (name, date, size) with remove option
+- **Loading State**: Shows spinner during operations
+- **Error State**: Shows error messages with retry options
+- **Upload State**: Shows progress bar during file upload
+
+---
+
+## 13. app.js (2.4KB, 84 lines)
 
 **Purpose**: Main application entry point and initialization controller.
 
@@ -689,7 +803,8 @@ The frontend JavaScript is organized into 12 modular files, each with a specific
 9. **table.js** → Renders tables (uses Utils, FlattenManager)
 10. **flatten.js** → Core flattening logic (can use FlattenDebugLogger)
 11. **flatten_debug.js** → Debug system (uses Utils)
-12. **app.js** → Coordinates all modules
+12. **alias.js** → Manages alias management
+13. **app.js** → Coordinates all modules
 
 ### Global Objects Exposed:
 - `window.AppConfig` - Configuration and state
@@ -703,6 +818,7 @@ The frontend JavaScript is organized into 12 modular files, each with a specific
 - `window.TableManager` - Table rendering
 - `window.FlattenManager` - Table flattening
 - `window.FlattenDebugLogger` - Debug logging
+- `window.AliasManager` - Alias management
 - `window.App` - Main application
 
 ## Key Features

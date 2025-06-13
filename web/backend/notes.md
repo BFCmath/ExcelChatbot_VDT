@@ -4,15 +4,33 @@
 
 The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to process multiple Excel files and handle natural language queries across hierarchical data structures. The system maintains isolated conversation sessions with their own state and supports complex multi-file operations with intelligent query routing.
 
+## Recent Updates (2025-06-14)
+
+### Major Features Added:
+- **System-Wide Alias Management**: Global alias file system with thread-safe operations and logical file removal
+- **Query Enrichment Pipeline**: Automatic query enhancement using LLM and alias dictionaries
+- **Enhanced API Endpoints**: New alias management endpoints with comprehensive error handling
+
+### Critical Bug Fixes:
+- **File Access Conflict Resolution**: Fixed Windows file locking issues by implementing logical file removal instead of physical deletion
+- **Thread-Safe Alias Operations**: Implemented proper locking mechanisms for concurrent alias file access
+- **Graceful Error Handling**: Enhanced error handling for file-in-use scenarios and alias processing failures
+
+### System Improvements:
+- **Automatic Alias Integration**: Conversations automatically detect and use system alias files
+- **Enhanced Query Processing**: Multi-step query processing with alias enrichment as first step
+- **Robust File Management**: Better handling of file replacement and orphaned file scenarios
+
 ## System Architecture
 
 ### Core Components
 
 1. **FastAPI Application Layer** (`app.py`)
 2. **Conversation Management** (`conversation.py`, `managers.py`)
-3. **Security & Validation** (`middleware.py`)
-4. **Core Processing Engine** (`core/` directory)
-5. **Configuration Management** (`core/config.py`)
+3. **Alias Management System** (`alias_manager.py`)
+4. **Security & Validation** (`middleware.py`)
+5. **Core Processing Engine** (`core/` directory)
+6. **Configuration Management** (`core/config.py`)
 
 ---
 
@@ -21,6 +39,11 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 ### 1. `app.py` - Main Application Entry Point
 
 **Purpose**: FastAPI application setup and API endpoint definitions
+
+**Recent Updates (2025-06-14)**:
+- **Added Alias Management Endpoints**: System-wide alias file management
+- **Enhanced Query Processing**: Automatic alias enrichment integration
+- **Improved Error Handling**: Better exception handling for alias operations
 
 **Key Features**:
 - **Application Lifecycle Management**: Startup/shutdown handlers with proper resource initialization
@@ -31,10 +54,13 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 
 **Main Endpoints**:
 - `GET /health` - Health check with active conversation count
+- `GET /alias/status` - Check system alias file status
+- `POST /alias/upload` - Upload system-wide alias file
+- `DELETE /alias` - Remove current alias file (logical removal)
 - `POST /conversations` - Create new conversation session
 - `POST /upload` - Simple upload endpoint (frontend compatibility)
 - `POST /conversations/{id}/upload` - Upload files to specific conversation
-- `POST /conversations/{id}/query` - Process natural language queries
+- `POST /conversations/{id}/query` - Process natural language queries with alias enrichment
 - `GET /conversations/{id}/files` - List processed files
 - `GET /conversations/{id}/validate` - Validate conversation existence
 
@@ -47,19 +73,60 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 
 **Purpose**: Individual conversation session handling
 
+**Recent Updates (2025-06-14)**:
+- **Automatic Alias Integration**: Conversations automatically detect and use system alias files
+- **Enhanced Query Processing**: Queries are enriched with alias context when available
+
 **Key Features**:
 - **Isolated State**: Each conversation has its own processor instance
 - **UUID-based Identification**: Unique conversation IDs
 - **Timestamp Tracking**: Creation time for cleanup purposes
 - **Error Handling**: Comprehensive exception handling with logging
+- **Alias Integration**: Automatic system alias file detection and usage
 
 **Main Class**: `Conversation`
 - `__init__()` - Initialize with unique ID and processor
 - `get_processed_files()` - Return list of processed filenames
 - `process_file()` - Process uploaded file and extract metadata
-- `get_response()` - Process query and return results
+- `get_response()` - Process query with automatic alias enrichment and return results
 
-### 3. `managers.py` - Conversation Manager
+### 3. `alias_manager.py` - Global Alias Management System
+
+**Purpose**: System-wide alias file management with thread-safe operations
+
+**Recent Bug Fixes (2025-06-14)**:
+- **Fixed File Access Conflicts**: Logical removal instead of physical deletion
+- **Enhanced Upload Process**: Better handling of file replacement scenarios
+- **Improved Error Handling**: Graceful handling of file-in-use scenarios
+
+**Key Features**:
+- **Thread-Safe Operations**: Uses threading.RLock for concurrent access
+- **Singleton Pattern**: Global instance shared across the application
+- **Logical File Removal**: Avoids file access conflicts by clearing references
+- **Automatic File Discovery**: Loads existing alias files on startup
+- **File Conflict Resolution**: Handles files in use by other processes
+
+**Main Class**: `AliasFileManager`
+- `__init__()` - Initialize with storage directory and load existing files
+- `has_alias_file()` - Check if system alias file is available
+- `get_alias_file_path()` - Get path to current alias file
+- `get_alias_file_info()` - Get metadata about current alias file
+- `upload_alias_file()` - Upload new alias file (replaces existing)
+- `remove_alias_file()` - Logically remove current alias file
+- `get_system_status()` - Get complete system status information
+
+**Global Functions**:
+- `get_alias_manager()` - Get singleton instance (thread-safe)
+- `has_system_alias_file()` - Quick availability check
+- `get_system_alias_file_path()` - Get current alias file path
+
+**File Management Strategy**:
+- **Single Active File**: Only one alias file active at a time
+- **Physical File Persistence**: Files kept on disk to avoid process conflicts
+- **Logical State Management**: System references control file availability
+- **Graceful Degradation**: System works with or without alias files
+
+### 4. `managers.py` - Conversation Manager
 
 **Purpose**: Global conversation management and lifecycle
 
@@ -76,7 +143,7 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - `cleanup_conversation()` - Manual conversation removal
 - `_cleanup_old_conversations()` - Automatic cleanup of expired sessions
 
-### 4. `middleware.py` - Security and Validation
+### 5. `middleware.py` - Security and Validation
 
 **Purpose**: Request validation and file security
 
@@ -98,7 +165,7 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - Unicode normalization for filenames
 - Timestamp-based unique naming
 
-### 5. `core/config.py` - Configuration Management
+### 6. `core/config.py` - Configuration Management
 
 **Purpose**: Environment configuration and logging setup
 
@@ -125,9 +192,14 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 
 ## Core Processing Engine (`core/` directory)
 
-### 6. `core/processor.py` - Main Processing Engine
+### 7. `core/processor.py` - Main Processing Engine
 
 **Purpose**: Multi-file Excel processing and query coordination
+
+**Recent Updates (2025-06-14)**:
+- **Alias Enrichment Integration**: Automatic query enrichment using system alias files
+- **Enhanced Query Flow**: Added alias enrichment as first step in query processing
+- **Graceful Fallback**: System works normally when no alias file is available
 
 **Key Classes**:
 
@@ -143,18 +215,25 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - `generate_file_summary()` - LLM-based file summarization
 - `process_multiple_files()` - Batch file processing
 - `separate_query()` - Query routing across files
-- `process_multi_file_query()` - Coordinate multi-file queries
+- `process_multi_file_query()` - Coordinate multi-file queries with alias enrichment
 - `process_single_file_query()` - Handle individual file queries
 
-**Processing Pipeline**:
-1. Header analysis and row detection
-2. Feature name extraction using LLM
-3. DataFrame preprocessing and cleaning
-4. Hierarchical structure creation
-5. LLM summarization
-6. Metadata storage
+**Enhanced Processing Pipeline** (with alias support):
+1. **Alias Enrichment** - Enrich query with alias context (if available)
+2. Header analysis and row detection
+3. Feature name extraction using LLM
+4. DataFrame preprocessing and cleaning
+5. Hierarchical structure creation
+6. LLM summarization
+7. Metadata storage
 
-### 7. `core/postprocess.py` - Table Structure Processing
+**Alias Integration Features**:
+- **Automatic Detection**: Checks for system alias file before processing
+- **Query Enrichment**: Enhances user queries with alias context
+- **Error Handling**: Graceful fallback when alias processing fails
+- **Logging**: Comprehensive logging of alias enrichment process
+
+### 8. `core/postprocess.py` - Table Structure Processing
 
 **Purpose**: Convert DataFrames to frontend-ready hierarchical tables
 
@@ -175,7 +254,7 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - **Acronym Generation**: Preserves case and numbers in abbreviations
 - **JSON Serialization**: Frontend-ready data format
 
-### 8. `core/llm.py` - Language Model Processing
+### 9. `core/llm.py` - Language Model Processing
 
 **Purpose**: LLM integration for query analysis and feature extraction
 
@@ -196,7 +275,7 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - `parse_row_handler_output()` - Parse row selection logic
 - `parse_col_handler_output()` - Parse column selection logic
 
-### 9. `core/utils.py` - Utility Functions
+### 10. `core/utils.py` - Utility Functions
 
 **Purpose**: Common utilities for data processing
 
@@ -213,7 +292,7 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - **Hierarchical Formatting**: LLM-friendly structure representation
 - **Mismatch Logging**: Tracks column matching issues
 
-### 10. `core/extract_df.py` - DataFrame Extraction
+### 11. `core/extract_df.py` - DataFrame Extraction
 
 **Purpose**: Extract data based on hierarchical selections
 
@@ -232,7 +311,7 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - **Condition Building**: Complex boolean condition creation
 - **Statistics Tracking**: Monitor extraction performance
 
-### 11. `core/metadata.py` - Metadata Extraction
+### 12. `core/metadata.py` - Metadata Extraction
 
 **Purpose**: Extract structural metadata from Excel files
 
@@ -247,7 +326,7 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - **Recursive Processing**: Handle arbitrary nesting levels
 - **Undefined Handling**: Smart handling of undefined values
 
-### 12. `core/preprocess.py` - Data Preprocessing
+### 13. `core/preprocess.py` - Data Preprocessing
 
 **Purpose**: Clean and prepare Excel data
 
@@ -263,7 +342,7 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - **Forward Filling**: Preserve hierarchical structure
 - **Header-Only Extraction**: Efficient header analysis
 
-### 13. `core/prompt.py` - LLM Prompt Templates
+### 14. `core/prompt.py` - LLM Prompt Templates
 
 **Purpose**: Structured prompts for LLM operations
 
@@ -281,6 +360,38 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - **Hierarchical Examples**: Complex nested structure examples
 - **Step-by-step Reasoning**: Detailed thinking processes
 - **Flexible Templates**: Configurable prompt parameters
+
+### 15. `core/alias_handler.py` - Alias Processing Engine
+
+**Purpose**: LLM-based query enrichment using alias dictionaries
+
+**Key Features**:
+- **Excel-based Alias Dictionaries**: Supports complex alias mappings in Excel format
+- **LLM Integration**: Uses language models for intelligent query enrichment
+- **Caching System**: Caches loaded alias dictionaries for performance
+- **Multi-sheet Support**: Handles multiple sheets in alias Excel files
+- **Error Handling**: Graceful handling of missing or invalid alias files
+
+**Key Functions**:
+- `format_excel_sheets()` - Convert Excel sheets to structured string format
+- `get_alias_dictionary()` - Load and format alias dictionary from Excel
+- `parse_enriched_query()` - Extract enriched query from LLM response
+
+**Main Class**: `AliasEnricher`
+- `__init__()` - Initialize with optional LLM instance
+- `load_alias_dictionary()` - Load alias dictionary with caching
+- `enrich_query()` - Main enrichment function using LLM
+- `clear_cache()` - Clear alias dictionary cache
+
+**Enrichment Process**:
+1. Load alias dictionary from Excel file
+2. Format dictionary for LLM consumption
+3. Create enrichment prompt with user query and aliases
+4. Use LLM to generate enriched query
+5. Parse and return enhanced query
+
+**Global Function**:
+- `enrich_query_with_aliases()` - Standalone enrichment function
 
 ---
 
@@ -304,20 +415,28 @@ The Excel Chatbot Backend is a sophisticated FastAPI-based system designed to pr
 - Context-aware query understanding
 - Multi-language support (Vietnamese/English)
 
-### 4. **Security & Validation**
+### 4. **Alias Management System** *(New in 2025-06-14)*
+- **System-wide alias files**: Single alias file shared across all conversations
+- **LLM-based enrichment**: Intelligent query enhancement using alias context
+- **Excel-based dictionaries**: Support for complex alias mappings in Excel format
+- **Automatic integration**: Seamless integration into query processing pipeline
+- **File conflict resolution**: Logical file removal to avoid process conflicts
+- **Thread-safe operations**: Concurrent access support with proper locking
+
+### 5. **Security & Validation**
 - File type and size validation
 - Path traversal prevention
 - Input sanitization
 - Request size limiting
 - CORS configuration
 
-### 5. **Performance Optimization**
+### 6. **Performance Optimization**
 - Async/await operations
 - Memory-efficient processing
 - Intelligent caching strategies
 - Cleanup automation
 
-### 6. **Frontend Integration**
+### 7. **Frontend Integration**
 - JSON-serializable responses
 - Hierarchical table structures
 - Rowspan/colspan calculations
