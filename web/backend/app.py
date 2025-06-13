@@ -15,6 +15,7 @@ import uvicorn
 from managers import conversation_manager
 from middleware import FileValidator, RequestValidator
 from core.config import setup_logging, UPLOAD_FOLDER, ALLOWED_ORIGINS, MAX_CONTENT_LENGTH
+from alias_manager import get_alias_manager, has_system_alias_file
 
 # Setup logging
 logger = setup_logging()
@@ -108,6 +109,16 @@ class HealthResponse(BaseModel):
 class QueryResponse(BaseModel):
     results: dict
 
+class AliasFileResponse(BaseModel):
+    message: str
+    alias_file_info: dict
+
+class AliasSystemStatus(BaseModel):
+    has_alias_file: bool
+    alias_file_info: dict = None
+    storage_directory: str
+    system_ready: bool
+
 # --- API Endpoints ---
 
 @app.get("/health", response_model=HealthResponse)
@@ -118,6 +129,88 @@ async def health_check():
         version="1.0.0",
         active_conversations=conversation_manager.get_conversation_count()
     )
+
+# --- Alias File Management Endpoints ---
+
+@app.get("/alias/status", response_model=AliasSystemStatus)
+async def get_alias_system_status():
+    """
+    Get the current status of the alias file system.
+    """
+    try:
+        alias_manager = get_alias_manager()
+        status = alias_manager.get_system_status()
+        return AliasSystemStatus(**status)
+    except Exception as e:
+        logger.error(f"Failed to get alias system status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get alias system status")
+
+@app.post("/alias/upload", response_model=AliasFileResponse)
+async def upload_alias_file(
+    file: UploadFile = File(...)
+):
+    """
+    Upload a new alias file to the system.
+    Replaces any existing alias file.
+    """
+    try:
+        # Validate file
+        FileValidator.validate_single_file(file)
+        
+        # Check if it's an Excel file
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="Alias file must be an Excel file (.xlsx or .xls)")
+        
+        # Create a temporary file path
+        safe_filename = FileValidator.sanitize_filename(file.filename)
+        temp_file_path = os.path.join(UPLOAD_FOLDER, f"temp_alias_{safe_filename}")
+        
+        # Save file temporarily
+        await save_file_async(file, temp_file_path)
+        
+        # Upload to alias manager
+        alias_manager = get_alias_manager()
+        alias_info = alias_manager.upload_alias_file(temp_file_path, file.filename)
+        
+        # Clean up temporary file
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        
+        logger.info(f"Alias file uploaded successfully: {file.filename}")
+        
+        return AliasFileResponse(
+            message=f"Alias file '{file.filename}' uploaded successfully",
+            alias_file_info=alias_info
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Failed to upload alias file: {e}")
+        # Clean up temporary file on error
+        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        raise HTTPException(status_code=500, detail=f"Failed to upload alias file: {str(e)}")
+
+@app.delete("/alias", response_model=dict)
+async def remove_alias_file():
+    """
+    Remove the current alias file from the system.
+    """
+    try:
+        alias_manager = get_alias_manager()
+        success = alias_manager.remove_alias_file()
+        
+        if success:
+            logger.info("Alias file removed successfully")
+            return {"message": "Alias file removed successfully"}
+        else:
+            return {"message": "No alias file was present to remove"}
+            
+    except Exception as e:
+        logger.error(f"Failed to remove alias file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to remove alias file")
 
 @app.post("/conversations", status_code=201, response_model=ConversationResponse)
 async def create_conversation():

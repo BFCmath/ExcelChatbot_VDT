@@ -2,6 +2,7 @@ import uuid
 import logging
 from datetime import datetime
 from core.processor import MultiFileProcessor
+from alias_manager import get_system_alias_file_path, has_system_alias_file
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -49,13 +50,13 @@ class Conversation:
             logger.error(f"Full traceback:\n{traceback.format_exc()}")
             raise ValueError(f"Failed to process file: {str(e)}")
 
-    def get_response(self, query: str, alias_file_path: str = None):
+    def get_response(self, query: str):
         """
         Process a user query and return the response.
+        Automatically uses the system alias file if available.
         
         Args:
             query (str): User's natural language query
-            alias_file_path (str, optional): Path to alias Excel file for query enrichment
             
         Returns:
             dict: Query results or error information
@@ -70,8 +71,16 @@ class Conversation:
                 logger.warning(f"WARNING: No files processed in conversation {self.id}")
                 raise ValueError("No files have been processed in this conversation")
             
-            # Use multi-file query processing with optional alias enrichment
-            result = self.processor.process_multi_file_query(query, alias_file_path)
+            # Check for system alias file
+            system_alias_file = None
+            if has_system_alias_file():
+                system_alias_file = get_system_alias_file_path()
+                logger.info(f"Using system alias file: {system_alias_file}")
+            else:
+                logger.info("No system alias file available - processing without alias enrichment")
+            
+            # Use multi-file query processing with system alias file (if available)
+            result = self.processor.process_multi_file_query(query, system_alias_file)
             logger.info(f"Successfully processed query for conversation {self.id}")
             return result
             

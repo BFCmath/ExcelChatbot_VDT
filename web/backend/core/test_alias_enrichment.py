@@ -16,6 +16,9 @@ sys.path.insert(0, str(backend_dir))
 
 from core.processor import MultiFileProcessor
 from core.config import setup_logging
+import sys
+sys.path.append('..')
+from alias_manager import get_alias_manager
 
 # Setup logging
 logger = setup_logging()
@@ -61,33 +64,47 @@ def test_alias_enrichment():
         summaries = processor.get_all_file_summaries()
         print(summaries)
         
-        print("\n🔍 STEP 2: Test alias enrichment")
+        print("\n🔍 STEP 2: System alias file management")
         print("-" * 50)
         
-        # Get alias file path
-        alias_file_path = None
-        use_alias = input("Do you want to use alias enrichment? (y/n): ").strip().lower()
+        # Manage system alias file
+        alias_manager = get_alias_manager()
         
-        if use_alias == 'y':
-            alias_path = input("Enter path to alias Excel file: ").strip()
-            if alias_path and os.path.exists(alias_path):
-                alias_file_path = alias_path
-                print(f"✅ Alias file: {alias_file_path}")
-                
-                # Test alias dictionary loading
-                try:
-                    processor.initialize_llm()
-                    alias_dict = processor.alias_enricher.load_alias_dictionary(alias_file_path)
-                    print("\n📋 Alias Dictionary Preview:")
-                    print("-" * 30)
-                    # Show first 500 characters of alias dictionary
-                    preview = alias_dict[:500] + "..." if len(alias_dict) > 500 else alias_dict
-                    print(preview)
-                except Exception as e:
-                    print(f"❌ Error loading alias dictionary: {e}")
-                    alias_file_path = None
-            else:
-                print(f"❌ Alias file not found: {alias_path}")
+        # Check current alias file status
+        if alias_manager.has_alias_file():
+            current_info = alias_manager.get_alias_file_info()
+            print(f"✅ Current system alias file: {current_info['filename']}")
+            print(f"   Uploaded: {current_info['uploaded_at']}")
+            
+            change_alias = input("Do you want to change the alias file? (y/n): ").strip().lower()
+            if change_alias == 'y':
+                alias_path = input("Enter path to new alias Excel file: ").strip()
+                if alias_path and os.path.exists(alias_path):
+                    try:
+                        filename = os.path.basename(alias_path)
+                        alias_manager.upload_alias_file(alias_path, filename)
+                        print(f"✅ New alias file uploaded: {filename}")
+                    except Exception as e:
+                        print(f"❌ Failed to upload alias file: {e}")
+                else:
+                    print(f"❌ Alias file not found: {alias_path}")
+        else:
+            print("⚠️  No system alias file currently loaded")
+            upload_alias = input("Do you want to upload an alias file? (y/n): ").strip().lower()
+            if upload_alias == 'y':
+                alias_path = input("Enter path to alias Excel file: ").strip()
+                if alias_path and os.path.exists(alias_path):
+                    try:
+                        filename = os.path.basename(alias_path)
+                        alias_manager.upload_alias_file(alias_path, filename)
+                        print(f"✅ Alias file uploaded: {filename}")
+                    except Exception as e:
+                        print(f"❌ Failed to upload alias file: {e}")
+                else:
+                    print(f"❌ Alias file not found: {alias_path}")
+        
+        # Show final status
+        print(f"\n📊 System Status: {'✅ Alias file available' if alias_manager.has_alias_file() else '❌ No alias file'}")
         
         print("\n💬 STEP 3: Query processing")
         print("-" * 50)
@@ -108,8 +125,8 @@ def test_alias_enrichment():
             print("-" * 40)
             
             try:
-                # Process the query with alias enrichment
-                result = processor.process_multi_file_query(user_query, alias_file_path)
+                # Process the query with system alias enrichment
+                result = processor.process_multi_file_query(user_query, alias_manager.get_alias_file_path())
                 
                 if result["success"]:
                     print("✅ Query processed successfully!")

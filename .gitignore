@@ -6,8 +6,11 @@ report/
 __pycache__/
 
 */uploads/*
-
+*/alias_files/*
+web/backend/alias_files
 web/backend/uploads/*
 web/backend/logs/app.log
 web/logs/app.log
 app.log
+
+*.xlsx
