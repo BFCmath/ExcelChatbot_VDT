@@ -49,12 +49,13 @@ class Conversation:
             logger.error(f"Full traceback:\n{traceback.format_exc()}")
             raise ValueError(f"Failed to process file: {str(e)}")
 
-    def get_response(self, query: str):
+    def get_response(self, query: str, alias_file_path: str = None):
         """
         Process a user query and return the response.
         
         Args:
             query (str): User's natural language query
+            alias_file_path (str, optional): Path to alias Excel file for query enrichment
             
         Returns:
             dict: Query results or error information
@@ -69,8 +70,8 @@ class Conversation:
                 logger.warning(f"WARNING: No files processed in conversation {self.id}")
                 raise ValueError("No files have been processed in this conversation")
             
-            # Use multi-file query processing
-            result = self.processor.process_multi_file_query(query)
+            # Use multi-file query processing with optional alias enrichment
+            result = self.processor.process_multi_file_query(query, alias_file_path)
             logger.info(f"Successfully processed query for conversation {self.id}")
             return result
             

@@ -26,6 +26,7 @@ from .postprocess import TablePostProcessor
 from .utils import get_feature_name_content, format_row_dict_for_llm, format_col_dict_for_llm
 from .metadata import get_number_of_row_header, convert_df_headers_to_nested_dict, convert_df_rows_to_nested_dict
 from .prompt import FILE_SUMMARY_PROMPT, QUERY_SEPARATOR_PROMPT
+from .alias_handler import AliasEnricher
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -60,6 +61,7 @@ class MultiFileProcessor:
         self.file_metadata = {}
         self.llm = None
         self.post_processor = TablePostProcessor()
+        self.alias_enricher = AliasEnricher()
     
     def initialize_llm(self):
         """Initialize LLM if not already done."""
@@ -73,6 +75,8 @@ class MultiFileProcessor:
                 google_api_key=api_key,
                 temperature=0.0
             )
+            # Initialize alias enricher with LLM
+            self.alias_enricher.llm = self.llm
     
     def extract_file_metadata(self, file_path, original_filename=None):
         """Extract and store metadata for a single file."""
@@ -225,14 +229,28 @@ class MultiFileProcessor:
 
         return assignments
     
-    def process_multi_file_query(self, query):
+    def process_multi_file_query(self, query, alias_file_path=None):
         """
         Process a query that may involve multiple files.
-        1. Separate query.
-        2. Process each sub-query.
-        3. Combine and return results.
+        1. Enrich query with aliases (if alias file provided).
+        2. Separate query.
+        3. Process each sub-query.
+        4. Combine and return results.
         """
-        assignments = self.separate_query(query)
+        # Step 1: Enrich query with aliases if alias file is provided
+        enriched_query = query
+        if alias_file_path:
+            try:
+                logger.info(f"🔍 Enriching query with aliases from {alias_file_path}")
+                enriched_query = self.alias_enricher.enrich_query(query, alias_file_path)
+                logger.info(f"📝 Original query: {query}")
+                logger.info(f"✨ Enriched query: {enriched_query}")
+            except Exception as e:
+                logger.warning(f"⚠️ Alias enrichment failed: {e}, using original query")
+                enriched_query = query
+        
+        # Step 2: Separate query (using enriched query)
+        assignments = self.separate_query(enriched_query)
         if not assignments:
             return {
                 "success": False,
@@ -305,7 +323,8 @@ class MultiFileProcessor:
 
         return {
             "success": True,
-            "query": query,
+            "original_query": query,
+            "enriched_query": enriched_query,
             "total_files_processed": len(results),
             "results": results
         }
