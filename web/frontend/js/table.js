@@ -138,6 +138,7 @@ function setupTableToggleEvents(container) {
     
     tableContainers.forEach(tableContainer => {
         setupNaNRowToggle(tableContainer);
+        setupFeatureColToggle(tableContainer);
     });
     
     const flattenContainers = container.querySelectorAll('.table-flatten-container');
@@ -160,9 +161,18 @@ function setupTableToggleEvents(container) {
         function updateTable() {
             let flattenedData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
             
+            // Check feature column toggle state
+            const featureColCheckbox = flattenContainer.querySelector('.feature-col-checkbox');
+            const showAllFeatureCols = featureColCheckbox ? featureColCheckbox.checked : false;
+            
+            // Apply feature column filtering if needed
+            if (!showAllFeatureCols) {
+                flattenedData = window.FlattenManager.filterTableDataByRedundantColumns(flattenedData, true);
+            }
+            
             // Check NaN row toggle state
             const nanRowCheckbox = flattenContainer.querySelector('.nan-row-checkbox');
-            const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : true;
+            const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : false;
             
             // Apply NaN row filtering if needed
             if (!showNaNRows) {
@@ -172,13 +182,23 @@ function setupTableToggleEvents(container) {
             const newTableHtml = createHierarchicalHtmlTable(flattenedData, tableData.filename || 'Table');
             tableView.innerHTML = newTableHtml;
             
-            // Update info text if NaN rows are hidden
-            if (!showNaNRows && flattenedData.nan_rows_hidden) {
-                const tableContainer = tableView.querySelector('.table-container');
-                if (tableContainer) {
-                    const infoDiv = tableContainer.querySelector('.table-info');
-                    if (infoDiv) {
-                        infoDiv.innerHTML += ` (${flattenedData.nan_rows_hidden} NaN rows hidden)`;
+            // Update info text with hidden counts
+            const tableContainer = tableView.querySelector('.table-container');
+            if (tableContainer) {
+                const infoDiv = tableContainer.querySelector('.table-info');
+                if (infoDiv) {
+                    let additionalInfo = [];
+                    
+                    if (!showNaNRows && flattenedData.nan_rows_hidden) {
+                        additionalInfo.push(`${flattenedData.nan_rows_hidden} NaN rows hidden`);
+                    }
+                    
+                    if (!showAllFeatureCols && flattenedData.redundant_columns_hidden) {
+                        additionalInfo.push(`${flattenedData.redundant_columns_hidden} redundant feature rows hidden`);
+                    }
+                    
+                    if (additionalInfo.length > 0) {
+                        infoDiv.innerHTML += ` (${additionalInfo.join(', ')})`;
                     }
                 }
             }
@@ -242,6 +262,15 @@ function setupNaNRowToggle(container) {
         // Get flattened table data
         let displayTableData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
         
+        // Check feature column toggle state
+        const featureColCheckbox = container.querySelector('.feature-col-checkbox');
+        const showAllFeatureCols = featureColCheckbox ? featureColCheckbox.checked : false;
+        
+        // Apply feature column filtering if needed
+        if (!showAllFeatureCols) {
+            displayTableData = window.FlattenManager.filterTableDataByRedundantColumns(displayTableData, true);
+        }
+        
         // Apply NaN row filtering
         if (!showNaNRows) {
             displayTableData = window.FlattenManager.filterTableDataByNaNRows(displayTableData, true);
@@ -251,13 +280,23 @@ function setupNaNRowToggle(container) {
         const newTableHtml = createHierarchicalHtmlTable(displayTableData, tableData.filename || 'Table');
         tableView.innerHTML = newTableHtml;
         
-        // Update info text if NaN rows are hidden
-        if (!showNaNRows && displayTableData.nan_rows_hidden) {
-            const tableContainer = tableView.querySelector('.table-container');
-            if (tableContainer) {
-                const infoDiv = tableContainer.querySelector('.table-info');
-                if (infoDiv) {
-                    infoDiv.innerHTML += ` (${displayTableData.nan_rows_hidden} NaN rows hidden)`;
+        // Update info text with hidden counts
+        const tableContainer = tableView.querySelector('.table-container');
+        if (tableContainer) {
+            const infoDiv = tableContainer.querySelector('.table-info');
+            if (infoDiv) {
+                let additionalInfo = [];
+                
+                if (!showNaNRows && displayTableData.nan_rows_hidden) {
+                    additionalInfo.push(`${displayTableData.nan_rows_hidden} NaN rows hidden`);
+                }
+                
+                if (!showAllFeatureCols && displayTableData.redundant_columns_hidden) {
+                    additionalInfo.push(`${displayTableData.redundant_columns_hidden} redundant feature rows hidden`);
+                }
+                
+                if (additionalInfo.length > 0) {
+                    infoDiv.innerHTML += ` (${additionalInfo.join(', ')})`;
                 }
             }
         }
@@ -270,12 +309,87 @@ function setupNaNRowToggle(container) {
     updateTable();
 }
 
+// Setup feature column toggle functionality
+function setupFeatureColToggle(container) {
+    const featureColCheckbox = container.querySelector('.feature-col-checkbox');
+    if (!featureColCheckbox) return;
+    
+    const resultIndex = parseInt(container.getAttribute('data-result-index'));
+    const tableView = container.querySelector('.dynamic-table-view');
+    
+    if (!tableView) return;
+    
+    // Get the original table data
+    const tableData = window.FlattenManager.getTableDataFromResult(resultIndex);
+    if (!tableData) return;
+    
+    function updateTable() {
+        const showAllFeatureCols = featureColCheckbox.checked;
+        
+        // Get current flatten level (if applicable)
+        let currentLevel = 0;
+        const levelDisplay = container.querySelector('.flatten-level-display');
+        if (levelDisplay) {
+            currentLevel = parseInt(levelDisplay.getAttribute('data-current-level')) || 0;
+        }
+        
+        // Get flattened table data
+        let displayTableData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+        
+        // Apply feature column filtering if needed
+        if (!showAllFeatureCols) {
+            displayTableData = window.FlattenManager.filterTableDataByRedundantColumns(displayTableData, true);
+        }
+        
+        // Check NaN row toggle state
+        const nanRowCheckbox = container.querySelector('.nan-row-checkbox');
+        const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : false;
+        
+        // Apply NaN row filtering
+        if (!showNaNRows) {
+            displayTableData = window.FlattenManager.filterTableDataByNaNRows(displayTableData, true);
+        }
+        
+        // Update table HTML
+        const newTableHtml = createHierarchicalHtmlTable(displayTableData, tableData.filename || 'Table');
+        tableView.innerHTML = newTableHtml;
+        
+        // Update info text with hidden counts
+        const tableContainer = tableView.querySelector('.table-container');
+        if (tableContainer) {
+            const infoDiv = tableContainer.querySelector('.table-info');
+            if (infoDiv) {
+                let additionalInfo = [];
+                
+                if (!showNaNRows && displayTableData.nan_rows_hidden) {
+                    additionalInfo.push(`${displayTableData.nan_rows_hidden} NaN rows hidden`);
+                }
+                
+                if (!showAllFeatureCols && displayTableData.redundant_columns_hidden) {
+                    additionalInfo.push(`${displayTableData.redundant_columns_hidden} redundant feature rows hidden`);
+                }
+                
+                if (additionalInfo.length > 0) {
+                    infoDiv.innerHTML += ` (${additionalInfo.join(', ')})`;
+                }
+            }
+        }
+    }
+    
+    // Add event listener for feature column toggle
+    featureColCheckbox.addEventListener('change', updateTable);
+    
+    // Initialize with redundant feature columns hidden (checkbox unchecked by default)
+    updateTable();
+}
+
 // Export table functions
 window.TableManager = {
     createHierarchicalHtmlTable,
     formatTableData,
     setupTableToggleEvents,
     setupNaNRowToggle,
+    setupFeatureColToggle,
     debugHeaders: function(resultIndex, level) {
         return window.FlattenManager.debugHeaders(resultIndex, level);
     }

@@ -786,6 +786,133 @@ function testFlattenLogic() {
     console.log('\n✅ Test completed');
 }
 
+// Identify redundant feature columns (columns with only one unique value)
+function identifyRedundantFeatureColumns(tableData) {
+    if (!tableData || !tableData.data_rows || !tableData.feature_rows) {
+        return [];
+    }
+    
+    const featureRowCount = tableData.feature_rows.length;
+    const redundantColumns = [];
+    
+    // Analyze each feature column
+    for (let colIndex = 0; colIndex < featureRowCount; colIndex++) {
+        const uniqueValues = new Set();
+        
+        // Collect all values in this feature column
+        tableData.data_rows.forEach(row => {
+            const value = row[colIndex];
+            if (value !== null && value !== undefined && value !== '') {
+                uniqueValues.add(String(value).trim());
+            }
+        });
+        
+        // If only one unique value (or all empty), mark as redundant
+        if (uniqueValues.size <= 1) {
+            redundantColumns.push({
+                index: colIndex,
+                uniqueValue: uniqueValues.size === 1 ? Array.from(uniqueValues)[0] : '',
+                featureName: tableData.feature_rows[colIndex] || `Column ${colIndex}`
+            });
+        }
+    }
+    
+    return redundantColumns;
+}
+
+// Filter table data to hide redundant feature columns
+function filterTableDataByRedundantColumns(tableData, hideRedundantColumns = true) {
+    if (!tableData || !hideRedundantColumns) {
+        return tableData;
+    }
+    
+    const redundantColumns = identifyRedundantFeatureColumns(tableData);
+    if (redundantColumns.length === 0) {
+        return tableData;
+    }
+    
+    const redundantIndices = redundantColumns.map(col => col.index);
+    
+    // Filter feature_rows array
+    const filteredFeatureRows = tableData.feature_rows.filter((_, index) => 
+        !redundantIndices.includes(index)
+    );
+    
+    // Filter data_rows by removing redundant columns
+    const filteredDataRows = tableData.data_rows.map(row => 
+        row.filter((_, index) => !redundantIndices.includes(index))
+    );
+    
+    // Update header_matrix to reflect removed columns
+    let filteredHeaderMatrix = tableData.header_matrix;
+    if (tableData.header_matrix && redundantIndices.length > 0) {
+        filteredHeaderMatrix = updateHeaderMatrixAfterColumnRemoval(tableData.header_matrix, redundantIndices);
+    }
+    
+    // Update final_columns if they correspond to table structure
+    let filteredFinalColumns = tableData.final_columns;
+    if (tableData.final_columns && tableData.final_columns.length > 0) {
+        // For hierarchical tables, final_columns usually represent data columns, not feature columns
+        // So we typically don't need to filter final_columns
+        filteredFinalColumns = tableData.final_columns;
+    }
+    
+    return {
+        ...tableData,
+        feature_rows: filteredFeatureRows,
+        data_rows: filteredDataRows,
+        final_columns: filteredFinalColumns,
+        header_matrix: filteredHeaderMatrix,
+        col_count: filteredDataRows.length > 0 ? filteredDataRows[0].length : 0,
+        redundant_columns_hidden: redundantColumns.length,
+        hidden_redundant_columns: redundantColumns
+    };
+}
+
+// Update header matrix after column removal
+function updateHeaderMatrixAfterColumnRemoval(headerMatrix, removedIndices) {
+    if (!headerMatrix || removedIndices.length === 0) {
+        return headerMatrix;
+    }
+    
+    // Sort removed indices in descending order to avoid position shifting issues
+    const sortedRemovedIndices = [...removedIndices].sort((a, b) => b - a);
+    
+    return headerMatrix.map(level => {
+        const updatedLevel = [];
+        
+        level.forEach(header => {
+            const startPos = header.position;
+            const endPos = startPos + header.colspan;
+            
+            // Check how many removed columns affect this header
+            let removedCount = 0;
+            let newStartPos = startPos;
+            
+            // Count removed columns before this header's start position
+            for (const removedIndex of sortedRemovedIndices) {
+                if (removedIndex < startPos) {
+                    newStartPos--;
+                } else if (removedIndex >= startPos && removedIndex < endPos) {
+                    removedCount++;
+                }
+            }
+            
+            // Only include this header if it still spans some columns after removal
+            const newColspan = header.colspan - removedCount;
+            if (newColspan > 0) {
+                updatedLevel.push({
+                    ...header,
+                    position: newStartPos,
+                    colspan: newColspan
+                });
+            }
+        });
+        
+        return updatedLevel;
+    });
+}
+
 // Identify NaN rows (rows where all data columns are null/undefined)
 function identifyNaNRows(tableData) {
     if (!tableData || !tableData.data_rows || !tableData.feature_rows) {
@@ -863,7 +990,13 @@ window.FlattenManager = {
     analyzeColumnStructure,
     // NaN row handling functions
     identifyNaNRows,
-    filterTableDataByNaNRows
+    filterTableDataByNaNRows,
+    // Redundant feature column handling functions
+    identifyRedundantFeatureColumns,
+    filterTableDataByRedundantColumns,
+    updateHeaderMatrixAfterColumnRemoval,
+    // Debug function
+    debugRedundantColumns
 };
 
 // Test multiindex conversion specifically
@@ -945,6 +1078,49 @@ function analyzeColumnStructure(resultIndex) {
         expectedStructure: 'See console output above',
         flattenedColumns: flattened.final_columns
     };
+}
+
+// Debug function to test redundant column filtering
+function debugRedundantColumns(resultIndex) {
+    console.log('🔍 Debug Redundant Columns for Result', resultIndex);
+    console.log('='.repeat(60));
+    
+    const tableData = getTableDataFromResult(resultIndex);
+    if (!tableData) {
+        console.log('❌ No table data found');
+        return;
+    }
+    
+    console.log('📊 Original Table Data:');
+    console.log('- Feature rows:', tableData.feature_rows);
+    console.log('- Data rows count:', tableData.data_rows.length);
+    console.log('- Column count:', tableData.col_count);
+    console.log('- First few data rows:');
+    tableData.data_rows.slice(0, 3).forEach((row, i) => {
+        console.log(`  Row ${i}:`, row);
+    });
+    
+    console.log('\n🔍 Analyzing redundant columns:');
+    const redundantColumns = identifyRedundantFeatureColumns(tableData);
+    console.log('- Redundant columns found:', redundantColumns);
+    
+    if (redundantColumns.length > 0) {
+        console.log('\n🧹 Filtered Table Data:');
+        const filteredData = filterTableDataByRedundantColumns(tableData, true);
+        console.log('- Filtered feature rows:', filteredData.feature_rows);
+        console.log('- Filtered data rows count:', filteredData.data_rows.length);
+        console.log('- Filtered column count:', filteredData.col_count);
+        console.log('- First few filtered data rows:');
+        filteredData.data_rows.slice(0, 3).forEach((row, i) => {
+            console.log(`  Row ${i}:`, row);
+        });
+        
+        console.log('\n📋 Header Matrix Comparison:');
+        console.log('- Original header matrix:', tableData.header_matrix);
+        console.log('- Filtered header matrix:', filteredData.header_matrix);
+    }
+    
+    console.log('\n✅ Debug completed');
 }
 
 console.log('✅ Flatten.js loaded'); 

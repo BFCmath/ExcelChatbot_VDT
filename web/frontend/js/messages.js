@@ -222,11 +222,19 @@ function formatQueryResults(response) {
                     html += `</svg>`;
                     html += `</button>`;
                     html += `</div>`;
+                    html += `<div class="table-filter-controls">`;
                     html += `<div class="nan-row-controls">`;
                     html += `<label class="nan-row-toggle">`;
                     html += `<input type="checkbox" class="nan-row-checkbox" data-result-index="${resultIndex}">`;
                     html += `<span class="nan-row-label">Show NaN Rows</span>`;
                     html += `</label>`;
+                    html += `</div>`;
+                    html += `<div class="feature-col-controls">`;
+                    html += `<label class="feature-col-toggle">`;
+                    html += `<input type="checkbox" class="feature-col-checkbox" data-result-index="${resultIndex}">`;
+                    html += `<span class="feature-col-label">Show All Feature Rows</span>`;
+                    html += `</label>`;
+                    html += `</div>`;
                     html += `</div>`;
                     html += `</div>`;
                     
@@ -240,11 +248,19 @@ function formatQueryResults(response) {
                     // Regular table without hierarchy - still add NaN row controls
                     html += `<div class="table-simple-container" data-result-index="${resultIndex}">`;
                     html += `<div class="table-controls">`;
+                    html += `<div class="table-filter-controls">`;
                     html += `<div class="nan-row-controls">`;
                     html += `<label class="nan-row-toggle">`;
                     html += `<input type="checkbox" class="nan-row-checkbox" data-result-index="${resultIndex}">`;
                     html += `<span class="nan-row-label">Show NaN Rows</span>`;
                     html += `</label>`;
+                    html += `</div>`;
+                    html += `<div class="feature-col-controls">`;
+                    html += `<label class="feature-col-toggle">`;
+                    html += `<input type="checkbox" class="feature-col-checkbox" data-result-index="${resultIndex}">`;
+                    html += `<span class="feature-col-label">Show All Feature Rows</span>`;
+                    html += `</label>`;
+                    html += `</div>`;
                     html += `</div>`;
                     html += `</div>`;
                     html += `<div class="dynamic-table-view">`;
