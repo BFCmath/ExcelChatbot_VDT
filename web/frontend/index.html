@@ -179,6 +179,80 @@
         </div>
     </div>
 
+    <!-- Plotting Modal -->
+    <div id="plot-modal" class="modal">
+        <div class="modal-content plot-modal-content">
+            <div class="modal-body">
+                <!-- Close button in top-right corner -->
+                <span class="close plot-close">&times;</span>
+                
+                <!-- Loading State -->
+                <div id="plot-loading" class="plot-loading">
+                    <div class="plot-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Generating sunburst charts...</p>
+                    </div>
+                </div>
+                
+                <!-- Error State -->
+                <div id="plot-error" class="plot-error" style="display: none;">
+                    <div class="plot-error-content">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h4>Chart Generation Failed</h4>
+                        <p id="plot-error-message">An error occurred while generating charts.</p>
+                        <button class="btn btn-secondary" onclick="hidePlotModal()">Close</button>
+                    </div>
+                </div>
+                
+                <!-- Success State -->
+                <div id="plot-results" class="plot-results" style="display: none;">
+                    <!-- Chart Options -->
+                    <div class="plot-chart-options">
+                        <div class="plot-tabs">
+                            <div class="plot-tab-group">
+                                <button class="plot-tab active" data-chart="column">
+                                    <i class="fas fa-clock"></i> Time First
+                                </button>
+                                <button class="plot-tab" data-chart="row">
+                                    <i class="fas fa-tags"></i> Categories First
+                                </button>
+                            </div>
+                            <div class="plot-tab-actions">
+                                <button class="btn btn-sm btn-primary" onclick="previewChart('column')" id="preview-btn">
+                                    <i class="fas fa-eye"></i> Preview
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="downloadChart('column')" id="download-btn">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Chart Previews -->
+                        <div class="plot-chart-container">
+                            <div id="plot-chart-column" class="plot-chart active">
+                                <div class="plot-chart-preview" id="plot-preview-column">
+                                    <div class="plot-preview-placeholder">
+                                        <i class="fas fa-chart-pie"></i>
+                                        <p>Click Preview to see chart</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="plot-chart-row" class="plot-chart">
+                                <div class="plot-chart-preview" id="plot-preview-row">
+                                    <div class="plot-preview-placeholder">
+                                        <i class="fas fa-chart-pie"></i>
+                                        <p>Click Preview to see chart</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
         <div class="loading-spinner">
@@ -195,6 +269,7 @@
     <script src="js/flatten_debug.js"></script>
     <script src="js/flatten_test.js"></script>
     <script src="js/table.js"></script>
+    <script src="js/plotting.js"></script>
     <script src="js/messages.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/alias.js"></script>

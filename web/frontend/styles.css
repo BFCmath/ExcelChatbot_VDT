@@ -1660,4 +1660,378 @@ body {
         padding: 4px 8px;
         font-size: 0.8rem;
     }
+}
+
+/* ===== PLOTTING MODAL STYLES ===== */
+
+/* Plotting Modal Styles */
+.plot-modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+    width: 95vw;
+    height: 95vh;
+    margin: 2.5vh auto;
+    padding: 0;
+    border-radius: 8px;
+    position: relative;
+}
+
+.plot-modal-content .modal-body {
+    padding: 15px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.plot-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    z-index: 1001; /* Higher z-index to ensure it's on top */
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.plot-close:hover {
+    color: #000;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.plot-chart-options {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.plot-chart-preview {
+    height: calc(100vh - 120px);
+    min-height: 600px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.plot-chart-preview iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    flex: 1;
+}
+
+.plot-preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #6c757d;
+    font-size: 16px;
+}
+
+.plot-preview-placeholder i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.plot-chart-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.plot-chart {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.plot-chart.active {
+    display: flex;
+}
+
+.plot-chart-header {
+    display: none; /* Hide the chart header to remove white overlay */
+}
+
+.plot-chart-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.plot-tabs {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #eee;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    padding-bottom: 5px;
+    padding-right: 50px; /* Add padding to avoid close button overlap */
+}
+
+.plot-tabs .plot-tab-group {
+    display: flex;
+}
+
+.plot-tab {
+    background: none;
+    border: none;
+    padding: 8px 20px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.plot-tab:hover {
+    background: #f8f9fa;
+    color: #495057;
+}
+
+.plot-tab.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    background: #f8f9fa;
+}
+
+.plot-tab i {
+    margin-right: 6px;
+    font-size: 12px;
+}
+
+.plot-tab-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-right: 50px; /* Add margin to avoid overlap with close button */
+}
+
+.plot-tab-actions .btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 4px;
+}
+
+/* Table controls - ensure plot button doesn't shrink */
+.table-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.table-controls .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Specific styling for plot button in table */
+.table-controls .plot-table-btn {
+    min-width: 80px; /* Ensure minimum width */
+}
+
+/* Loading and Error States */
+.plot-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    flex-direction: column;
+}
+
+.plot-spinner i {
+    font-size: 48px;
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+.plot-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.plot-error-content {
+    text-align: center;
+    max-width: 400px;
+}
+
+.plot-error-content i {
+    font-size: 48px;
+    color: #dc3545;
+    margin-bottom: 20px;
+}
+
+/* Results container */
+.plot-results {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.plot-info {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(16, 163, 127, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #10a37f;
+}
+
+.plot-summary h4 {
+    color: #10a37f;
+    margin-bottom: 8px;
+}
+
+.plot-summary p {
+    color: #888;
+    margin-bottom: 12px;
+}
+
+.plot-stats {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+}
+
+.plot-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.plot-stat i {
+    color: #10a37f;
+}
+
+/* Table Plot Button - Prevent shrinking */
+.plot-table-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    margin-left: 8px;
+    white-space: nowrap;
+    flex-shrink: 0; /* Prevent shrinking */
+    min-width: auto;
+}
+
+.plot-table-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.plot-table-btn:active {
+    transform: translateY(0);
+}
+
+.plot-table-btn i {
+    font-size: 0.9rem;
+}
+
+.plot-label {
+    font-weight: 500;
+}
+
+/* Responsive design for plotting */
+@media (max-width: 768px) {
+    .plot-modal-content {
+        width: 95vw;
+        margin: 20px auto;
+        max-height: 95vh;
+    }
+    
+    .plot-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .plot-chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .plot-analysis-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .plot-tabs {
+        flex-direction: column;
+    }
+    
+    .plot-tab {
+        border-bottom: 1px solid #333;
+        border-right: 3px solid transparent;
+    }
+    
+    .plot-tab.active {
+        border-bottom-color: #333;
+        border-right-color: #10a37f;
+    }
+    
+    .plot-chart-iframe {
+        height: 300px;
+    }
+    
+    .plot-table-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .plot-table-btn .plot-label {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .plot-chart-actions {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .plot-chart-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .plot-chart-iframe {
+        height: 250px;
+    }
 } 

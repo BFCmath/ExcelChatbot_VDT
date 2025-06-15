@@ -618,6 +618,34 @@ function findTopLevelDataParents(currentTableData, originalTableData) {
 
 
 
+// Setup plotting events for table
+function setupTablePlottingEvents(container) {
+    // Find all plot buttons within the container (since container might be messageContent)
+    const plotBtns = container.querySelectorAll('.plot-table-btn');
+    
+    plotBtns.forEach(plotBtn => {
+        plotBtn.addEventListener('click', function() {
+            // Get the result index from the button's own data attribute
+            const resultIndex = plotBtn.getAttribute('data-result-index');
+            console.log(`🎯 [TABLE] Plot button clicked for result ${resultIndex}`);
+            
+            // Check if PlottingManager is available
+            if (window.PlottingManager) {
+                window.PlottingManager.initializePlotting(resultIndex);
+            } else {
+                console.error('PlottingManager not available');
+                showError('Plotting functionality not loaded');
+            }
+        });
+    });
+    
+    if (plotBtns.length === 0) {
+        console.warn('No plot buttons found in container');
+    } else {
+        console.log(`✅ [TABLE] Set up ${plotBtns.length} plot button(s)`);
+    }
+}
+
 // Export table functions
 window.TableManager = {
     createHierarchicalHtmlTable,
@@ -626,6 +654,7 @@ window.TableManager = {
     setupNaNRowToggle,
     setupFeatureColToggle,
     setupTableDownloadEvents,
+    setupTablePlottingEvents,
     downloadTableData,
     downloadAsJSON,
     identifyCurrentFeatureCols,

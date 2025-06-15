@@ -32,6 +32,7 @@ function addMessageToUI(content, type, animate = true) {
             // Setup table events after inserting the HTML
             setTimeout(() => {
                 window.TableManager.setupTableToggleEvents(messageContent);
+                window.TableManager.setupTablePlottingEvents(messageContent);
             }, 100);
         } else {
             // Regular text content
@@ -241,6 +242,10 @@ function formatQueryResults(response) {
                     html += `<i class="fas fa-download"></i>`;
                     html += `<span class="download-label">Download</span>`;
                     html += `</button>`;
+                    html += `<button class="plot-table-btn" data-result-index="${resultIndex}" title="Generate Sunburst Charts">`;
+                    html += `<i class="fas fa-chart-pie"></i>`;
+                    html += `<span class="plot-label">Plot</span>`;
+                    html += `</button>`;
                     html += `</div>`;
                     html += `<div class="nan-row-controls">`;
                     html += `<label class="nan-row-toggle">`;
@@ -272,6 +277,10 @@ function formatQueryResults(response) {
                     html += `<button class="table-download-btn" data-result-index="${resultIndex}" title="Download Table">`;
                     html += `<i class="fas fa-download"></i>`;
                     html += `<span class="download-label">Download</span>`;
+                    html += `</button>`;
+                    html += `<button class="plot-table-btn" data-result-index="${resultIndex}" title="Generate Sunburst Charts">`;
+                    html += `<i class="fas fa-chart-pie"></i>`;
+                    html += `<span class="plot-label">Plot</span>`;
                     html += `</button>`;
                     html += `</div>`;
                     html += `<div class="nan-row-controls">`;
