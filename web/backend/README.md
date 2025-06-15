@@ -166,7 +166,8 @@ ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 For production, use a proper ASGI server:
 ```bash
-uvicorn web.backend.app:app --host 0.0.0.0 --port 5001 --workers 4
+cd web/backend
+uvicorn app:app --host 0.0.0.0 --port 5001 --workers 4
 ```
 
 ---

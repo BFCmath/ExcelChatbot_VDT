@@ -16,6 +16,7 @@ from managers import conversation_manager
 from middleware import FileValidator, RequestValidator
 from core.config import setup_logging, UPLOAD_FOLDER, ALLOWED_ORIGINS, MAX_CONTENT_LENGTH
 from alias_manager import get_alias_manager, has_system_alias_file
+from core.plotting import PlotGenerator
 
 # Setup logging
 logger = setup_logging()
@@ -118,6 +119,24 @@ class AliasSystemStatus(BaseModel):
     alias_file_info: Optional[dict] = None
     storage_directory: str
     system_ready: bool
+
+class PlotRequest(BaseModel):
+    table_data: dict = Field(..., description="JSON table data from frontend download")
+    prompt: str = Field(..., min_length=1, max_length=500, description="User's plotting request")
+
+class PlotResponse(BaseModel):
+    success: bool
+    plot_data: Optional[str] = None
+    plot_type: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    html_content: Optional[str] = None
+    data_points: Optional[int] = None
+    hierarchy: Optional[List[str]] = None
+    priority: Optional[str] = None
+    analysis: Optional[dict] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 # --- API Endpoints ---
 
@@ -396,6 +415,81 @@ async def handle_query(conversation_id: str, request: QueryRequest):
     except Exception as e:
         logger.error(f"Unexpected error processing query for {conversation_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to process query")
+
+# --- Plotting Endpoint ---
+
+@app.post("/plot/generate", response_model=PlotResponse)
+async def generate_plot(request: PlotRequest):
+    """
+    Generate plots based on table data and user prompt using LLM and tool calling.
+    
+    This endpoint receives JSON table data (from frontend download) and a plotting prompt,
+    then uses structured LLM prompts with tool calling to generate appropriate visualizations.
+    
+    Supports:
+    - Bar charts for categorical comparisons
+    - Sunburst charts for hierarchical data
+    - Line charts for time series/trends
+    - Scatter plots for relationships
+    - Histograms for distributions
+    - Pie charts for proportional data
+    """
+    try:
+        # Validate table data structure
+        if not isinstance(request.table_data, dict):
+            raise HTTPException(status_code=400, detail="table_data must be a dictionary")
+        
+        # Validate expected frontend JSON format (from table.js downloadAsJSON)
+        required_fields = ['final_columns', 'data_rows', 'feature_rows', 'feature_cols']
+        missing_fields = [field for field in required_fields if field not in request.table_data]
+        if missing_fields:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Missing required fields in table_data: {missing_fields}. Expected frontend JSON format with final_columns, data_rows, feature_rows, feature_cols."
+            )
+        
+        # Log the plotting request
+        logger.info(f"📊 [PLOT] New plotting request")
+        logger.info(f"📊 [PLOT] Prompt: {request.prompt}")
+        logger.info(f"📊 [PLOT] Table shape: {len(request.table_data.get('data_rows', []))} rows × {len(request.table_data.get('final_columns', []))} columns")
+        logger.info(f"📊 [PLOT] Has hierarchical: {request.table_data.get('has_multiindex', False)}")
+        logger.info(f"📊 [PLOT] Flatten level: {request.table_data.get('flatten_level_applied', 'unknown')}")
+        logger.info(f"📊 [PLOT] Feature rows: {request.table_data.get('feature_rows', [])}")
+        logger.info(f"📊 [PLOT] Feature cols: {request.table_data.get('feature_cols', [])}")
+        
+        # Initialize plot generator
+        plot_generator = PlotGenerator()
+        
+        # Generate plot using LLM and tools
+        plot_result = await plot_generator.generate_plot(request.table_data, request.prompt)
+        
+        logger.info(f"📊 [PLOT] Plot generation completed: {plot_result.get('success', False)}")
+        
+        # Convert to response format
+        return PlotResponse(
+            success=plot_result.get('success', False),
+            plot_data=plot_result.get('plot_data'),
+            plot_type=plot_result.get('plot_type'),
+            title=plot_result.get('title'),
+            description=plot_result.get('description'),
+            html_content=plot_result.get('html_content'),
+            data_points=plot_result.get('data_points'),
+            hierarchy=plot_result.get('hierarchy'),
+            priority=plot_result.get('priority'),
+            analysis=plot_result.get('analysis'),
+            message=plot_result.get('message'),
+            error=plot_result.get('error')
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"❌ [PLOT] Error generating plot: {e}", exc_info=True)
+        return PlotResponse(
+            success=False,
+            error=f"Failed to generate plot: {str(e)}"
+        )
 
 # --- Async Helper Functions ---
 
