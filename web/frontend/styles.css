@@ -1488,6 +1488,49 @@ body {
     gap: 12px;
 }
 
+/* Table Download Controls */
+.table-download-controls {
+    display: flex;
+    align-items: center;
+}
+
+.table-download-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(16, 163, 127, 0.1);
+    border: 1px solid rgba(16, 163, 127, 0.3);
+    color: #10a37f;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.table-download-btn:hover {
+    background: rgba(16, 163, 127, 0.2);
+    border-color: rgba(16, 163, 127, 0.5);
+    color: #0d8f6f;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 163, 127, 0.2);
+}
+
+.table-download-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(16, 163, 127, 0.2);
+}
+
+.table-download-btn i {
+    font-size: 0.9rem;
+}
+
+.download-label {
+    user-select: none;
+}
+
 /* NaN Row Controls */
 .nan-row-controls {
     display: flex;
@@ -1610,6 +1653,11 @@ body {
     
     .nan-row-label,
     .feature-col-label {
+        font-size: 0.8rem;
+    }
+    
+    .table-download-btn {
+        padding: 4px 8px;
         font-size: 0.8rem;
     }
 } 

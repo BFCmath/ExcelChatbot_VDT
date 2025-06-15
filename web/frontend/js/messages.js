@@ -196,6 +196,18 @@ function formatQueryResults(response) {
                     result.feature_rows || [],
                     result.feature_cols || []
                 );
+                
+                // ALSO store the backend's flattened version and metadata for plotting
+                window.FlattenManager.storeBackendMetadata(
+                    resultIndex,
+                    {
+                        original_query: response.original_query,
+                        enriched_query: response.enriched_query,
+                        flattened_table_info: result.flattened_table_info,
+                        backend_feature_rows: result.feature_rows || [],
+                        backend_feature_cols: result.feature_cols || []
+                    }
+                );
             }
             
             if (result.success && result.table_info) {
@@ -219,9 +231,17 @@ function formatQueryResults(response) {
                     html += `<path d="M6 8L0 0h12L6 8z"/>`;
                     html += `</svg>`;
                     html += `</button>`;
-                    html += `<span class="flatten-level-display" data-current-level="0" style="display: none;"></span>`;
+                    // Calculate initial flatten level (same logic as setupTableToggleEvents)
+                    const initialFlattenLevel = Math.max(maxLv - 1, 0);
+                    html += `<span class="flatten-level-display" data-current-level="${initialFlattenLevel}" style="display: none;"></span>`;
                     html += `</div>`;
                     html += `<div class="table-filter-controls">`;
+                    html += `<div class="table-download-controls">`;
+                    html += `<button class="table-download-btn" data-result-index="${resultIndex}" title="Download Table">`;
+                    html += `<i class="fas fa-download"></i>`;
+                    html += `<span class="download-label">Download</span>`;
+                    html += `</button>`;
+                    html += `</div>`;
                     html += `<div class="nan-row-controls">`;
                     html += `<label class="nan-row-toggle">`;
                     html += `<input type="checkbox" class="nan-row-checkbox" data-result-index="${resultIndex}">`;
@@ -248,6 +268,12 @@ function formatQueryResults(response) {
                     html += `<div class="table-simple-container" data-result-index="${resultIndex}">`;
                     html += `<div class="table-controls">`;
                     html += `<div class="table-filter-controls">`;
+                    html += `<div class="table-download-controls">`;
+                    html += `<button class="table-download-btn" data-result-index="${resultIndex}" title="Download Table">`;
+                    html += `<i class="fas fa-download"></i>`;
+                    html += `<span class="download-label">Download</span>`;
+                    html += `</button>`;
+                    html += `</div>`;
                     html += `<div class="nan-row-controls">`;
                     html += `<label class="nan-row-toggle">`;
                     html += `<input type="checkbox" class="nan-row-checkbox" data-result-index="${resultIndex}">`;

@@ -16,6 +16,14 @@ function storeTableData(resultIndex, tableInfo, filename, featureRows = [], feat
     };
 }
 
+// Store backend metadata for plotting
+function storeBackendMetadata(resultIndex, metadata) {
+    if (!window.AppConfig.globalTableData[resultIndex]) {
+        window.AppConfig.globalTableData[resultIndex] = {};
+    }
+    window.AppConfig.globalTableData[resultIndex].backend_metadata = metadata;
+}
+
 // Create flattened table data based on flatten level
 function createFlattenedTableData(originalTableInfo, flattenLevel) {
     // Debug logging for main function entry
@@ -1023,6 +1031,7 @@ function filterTableDataByNaNRows(tableData, hideNaNRows = true) {
 window.FlattenManager = {
     getTableDataFromResult,
     storeTableData,
+    storeBackendMetadata,
     createFlattenedTableData,
     createCompletelyFlattenedTable,
     findHeaderForColumn,

@@ -139,6 +139,7 @@ function setupTableToggleEvents(container) {
     tableContainers.forEach(tableContainer => {
         setupNaNRowToggle(tableContainer);
         setupFeatureColToggle(tableContainer);
+        setupTableDownloadEvents(tableContainer);
     });
     
     const flattenContainers = container.querySelectorAll('.table-flatten-container');
@@ -156,9 +157,9 @@ function setupTableToggleEvents(container) {
         
         if (!tableData) return;
         
-        // Set default flatten level to max(maxLevels - 2, 0) to save space
-        // This shows a nearly flattened view by default
-        let currentLevel = Math.max(maxLevels - 1, 0);
+        // Get initial flatten level from HTML (set in messages.js)
+        // This ensures consistency between HTML and JavaScript
+        let currentLevel = parseInt(levelDisplay.getAttribute('data-current-level')) || Math.max(maxLevels - 1, 0);
         
         function updateTable() {
             let flattenedData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
@@ -387,6 +388,236 @@ function setupFeatureColToggle(container) {
     updateTable();
 }
 
+// Setup table download functionality
+function setupTableDownloadEvents(container) {
+    const downloadBtn = container.querySelector('.table-download-btn');
+    if (!downloadBtn) return;
+    
+    const resultIndex = parseInt(container.getAttribute('data-result-index'));
+    
+    if (!downloadBtn) return;
+    
+    downloadBtn.addEventListener('click', function() {
+        downloadTableData(resultIndex);
+    });
+}
+
+// Download table data in multiple formats
+function downloadTableData(resultIndex) {
+    const tableData = window.FlattenManager.getTableDataFromResult(resultIndex);
+    if (!tableData) {
+        console.error('No table data found for result index:', resultIndex);
+        return;
+    }
+    
+    // Get current table state (with any active filters and flattening)
+    // Use specific selector to find the correct table container
+    const container = document.querySelector(`div[data-result-index="${resultIndex}"].table-flatten-container, div[data-result-index="${resultIndex}"].table-simple-container`);
+    if (!container) {
+        console.error('Table container not found for result index:', resultIndex);
+        return;
+    }
+    
+    let currentTableData = { ...tableData };
+    
+    // Apply current flatten level if it's a hierarchical table
+    const levelDisplay = container.querySelector('.flatten-level-display');
+    if (levelDisplay) {
+        const currentLevel = parseInt(levelDisplay.getAttribute('data-current-level')) || 0;
+        currentTableData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+    }
+    
+    // Apply current filters
+    const featureColCheckbox = container.querySelector('.feature-col-checkbox');
+    const showAllFeatureCols = featureColCheckbox ? featureColCheckbox.checked : false;
+    
+    if (!showAllFeatureCols) {
+        currentTableData = window.FlattenManager.filterTableDataByRedundantColumns(currentTableData, true);
+    }
+    
+    const nanRowCheckbox = container.querySelector('.nan-row-checkbox');
+    const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : false;
+    
+    if (!showNaNRows) {
+        currentTableData = window.FlattenManager.filterTableDataByNaNRows(currentTableData, true);
+    }
+    
+    // Show download options modal
+    showDownloadModal(currentTableData, resultIndex);
+}
+
+// Show download options modal
+function showDownloadModal(tableData, resultIndex) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Download Table</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Download table data with current flattening and filters applied:</p>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+                    <button class="btn btn-primary download-json-btn">
+                        <i class="fas fa-file-code"></i> Download as JSON
+                    </button>
+                </div>
+                <div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 0.85rem; color: #888;">
+                    <i class="fas fa-info-circle" style="color: #10a37f; margin-right: 6px;"></i>
+                    Export includes flattened column names and applied filters
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listeners for modal
+    const closeBtn = modal.querySelector('.close');
+    const jsonBtn = modal.querySelector('.download-json-btn');
+    
+    function closeModal() {
+        document.body.removeChild(modal);
+    }
+    
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeModal();
+    });
+    
+    jsonBtn.addEventListener('click', function() {
+        downloadAsJSON(tableData, resultIndex);  // tableData is actually the currentTableData passed from downloadTableData()
+        closeModal();
+    });
+}
+
+// Download as JSON format for plotting (SIMPLIFIED VERSION)
+function downloadAsJSON(tableData, resultIndex) {
+    const filename = (tableData.filename || 'table').replace(/\.[^/.]+$/, '') + '_plotting_data.json';
+    
+    // Get the original backend data 
+    const originalTableData = window.FlattenManager.getTableDataFromResult(resultIndex);
+    
+    // Find the correct table container (not just any element with data-result-index)
+    // Look for the main container that has both data-result-index AND contains table controls
+    const container = document.querySelector(`div[data-result-index="${resultIndex}"].table-flatten-container, div[data-result-index="${resultIndex}"].table-simple-container`);
+    const levelDisplay = container?.querySelector('.flatten-level-display');
+    const currentFlattenLevel = levelDisplay ? parseInt(levelDisplay.getAttribute('data-current-level')) || 0 : 0;
+    
+    // Debug logging for multi-table download issue
+    console.log(`🔍 [DOWNLOAD DEBUG] Result Index: ${resultIndex}`);
+    console.log(`🔍 [DOWNLOAD DEBUG] Container found: ${container ? 'Yes' : 'No'}`);
+    console.log(`🔍 [DOWNLOAD DEBUG] Container class: ${container?.className || 'N/A'}`);
+    console.log(`🔍 [DOWNLOAD DEBUG] Level display found: ${levelDisplay ? 'Yes' : 'No'}`);
+    console.log(`🔍 [DOWNLOAD DEBUG] Level display attribute: ${levelDisplay?.getAttribute('data-current-level') || 'N/A'}`);
+    console.log(`🔍 [DOWNLOAD DEBUG] Calculated flatten level: ${currentFlattenLevel}`);
+    
+    // Debug: Show all elements with this result index
+    const allElementsWithIndex = document.querySelectorAll(`[data-result-index="${resultIndex}"]`);
+    console.log(`🔍 [DOWNLOAD DEBUG] All elements with result-index ${resultIndex}:`, allElementsWithIndex.length);
+    allElementsWithIndex.forEach((el, i) => {
+        console.log(`  ${i}: ${el.tagName}.${el.className} - ${el.getAttribute('data-current-level') || 'no-level'}`);
+    });
+    
+    // Get current feature_rows (after redundant filtering)
+    const currentFeatureRows = tableData.feature_rows || [];
+    
+    // Get feature_cols for current flattened table (descendants of original feature_cols)
+    const currentFeatureCols = identifyCurrentFeatureCols(tableData, originalTableData, currentFeatureRows);
+    
+    // Create simplified plotting data structure
+    const plotDataSchema = {
+        filename: tableData.filename,
+        has_multiindex: tableData.has_multiindex,
+        header_matrix: tableData.header_matrix,       // Current header structure
+        final_columns: tableData.final_columns,       // Current column names
+        data_rows: tableData.data_rows,               // Current filtered data
+        row_count: tableData.row_count,
+        col_count: tableData.col_count,
+        
+        // CRITICAL FOR PLOTTING:
+        feature_rows: currentFeatureRows,             // Filtered feature rows (grouping columns)
+        feature_cols: currentFeatureCols,             // Data columns in flattened table
+        
+        export_timestamp: new Date().toISOString(),
+        flatten_level_applied: currentFlattenLevel,
+        filters_applied: {
+            nan_rows_hidden: tableData.nan_rows_hidden || 0,
+            redundant_columns_hidden: tableData.redundant_columns_hidden || 0
+        }
+    };
+    
+    window.Utils.saveJsonToFile(plotDataSchema, filename);
+    console.log(`📊 Plotting data saved to: ${filename}`);
+    console.log(`📈 Result Index: ${resultIndex}`);
+    console.log(`📈 Flatten level: ${currentFlattenLevel}`);
+    console.log(`🎯 Feature rows: [${currentFeatureRows.join(', ')}]`);
+    console.log(`📊 Feature cols: [${currentFeatureCols.join(', ')}]`);
+    console.log(`🔍 Container found: ${container ? 'Yes' : 'No'} (${container?.className || 'N/A'})`);
+}
+
+// Identify feature_cols in the current flattened table
+function identifyCurrentFeatureCols(currentTableData, originalTableData, currentFeatureRows) {
+    if (!originalTableData || !originalTableData.feature_cols || originalTableData.feature_cols.length === 0) {
+        return [];
+    }
+    
+    const isHierarchical = currentTableData.has_multiindex;
+    const currentColumns = currentTableData.final_columns || [];
+    const featureRowsCount = currentFeatureRows.length;
+    
+    console.log(`🔍 Identifying feature cols:`);
+    console.log(`  - Original feature_cols: [${originalTableData.feature_cols.join(', ')}]`);
+    console.log(`  - Current columns: [${currentColumns.join(', ')}]`);
+    console.log(`  - Feature rows count: ${featureRowsCount}`);
+    console.log(`  - Is hierarchical: ${isHierarchical}`);
+    
+    if (isHierarchical) {
+        // LEVEL 0 (Hierarchical): Return top-level parent headers that span data columns
+        const parentHeaders = findTopLevelDataParents(currentTableData, originalTableData);
+        console.log(`  - Top-level data parents: [${parentHeaders.join(', ')}]`);
+        return parentHeaders;
+    } else {
+        // LEVEL 1+ (Flattened): Return actual data column names (after feature rows)
+        const dataColumns = currentColumns.slice(featureRowsCount);
+        console.log(`  - Data columns (flattened): [${dataColumns.join(', ')}]`);
+        return dataColumns;
+    }
+}
+
+// Find top-level parent headers that span data columns (not feature rows)
+function findTopLevelDataParents(currentTableData, originalTableData) {
+    const headerMatrix = currentTableData.header_matrix;
+    if (!headerMatrix || headerMatrix.length === 0) {
+        return [];
+    }
+    
+    const topLevel = headerMatrix[0] || [];
+    const dataParents = [];
+    const originalFeatureRows = originalTableData.feature_rows || [];
+    
+    for (const header of topLevel) {
+        // Parent headers for data columns have colspan > 1 AND are not feature rows
+        const isFeatureRowHeader = originalFeatureRows.includes(header.text);
+        
+        if (!isFeatureRowHeader && header.colspan > 1) {
+            // This is a parent header spanning multiple data columns
+            dataParents.push(header.text);
+        }
+    }
+    
+    console.log(`  - Top level headers: [${topLevel.map(h => `"${h.text}"(${h.colspan}c,${h.rowspan}r)`).join(', ')}]`);
+    console.log(`  - Feature rows: [${originalFeatureRows.join(', ')}]`);
+    console.log(`  - Data parent headers: [${dataParents.join(', ')}]`);
+    
+    return dataParents;
+}
+
+
+
 // Export table functions
 window.TableManager = {
     createHierarchicalHtmlTable,
@@ -394,6 +625,11 @@ window.TableManager = {
     setupTableToggleEvents,
     setupNaNRowToggle,
     setupFeatureColToggle,
+    setupTableDownloadEvents,
+    downloadTableData,
+    downloadAsJSON,
+    identifyCurrentFeatureCols,
+    findTopLevelDataParents,
     debugHeaders: function(resultIndex, level) {
         return window.FlattenManager.debugHeaders(resultIndex, level);
     }

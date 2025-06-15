@@ -848,4 +848,101 @@ The frontend JavaScript is organized into 13 modular files, each with a specific
 - **User-Friendly Messages**: Technical errors are translated to user-friendly language
 - **Debug Support**: Comprehensive logging for development and troubleshooting
 
-This modular architecture ensures maintainability, testability, and clear separation of concerns while providing a rich user experience for Excel data analysis. 
+This modular architecture ensures maintainability, testability, and clear separation of concerns while providing a rich user experience for Excel data analysis.
+
+---
+
+## 14. Plotting System (Backend Integration)
+
+**Purpose**: Plotting functionality that sends table data to backend for chart generation.
+
+### Backend Endpoint:
+- **POST /plot/generate**: Accepts JSON table data from frontend downloads and user prompts
+
+### Frontend Integration:
+
+#### JSON Download Format (from `table.js`):
+The `downloadAsJSON()` function creates plotting-ready JSON with these fields:
+- **`final_columns`**: Array of column names (after flattening)
+- **`data_rows`**: Array of data rows aligning with final_columns
+- **`feature_rows`**: Array of categorical column names (for grouping)
+- **`feature_cols`**: Array of numeric column names (for values)
+- **`has_multiindex`**: Boolean indicating hierarchical structure
+- **`header_matrix`**: Complete header structure for plotting context
+- **`flatten_level_applied`**: Integer showing which flatten level was used
+- **`filters_applied`**: Object showing which filters were applied
+
+#### Key Fix Implemented:
+**HTML/JavaScript Level Sync Issue**: 
+- **Problem**: HTML template hard-coded `data-current-level="0"` while JavaScript set different initial levels
+- **Solution**: Updated `messages.js` to calculate and set correct initial flatten level in HTML
+- **Result**: JSON downloads now correctly reflect the actual UI flatten level
+
+### Backend Implementation:
+
+#### PlotGenerator Class (`core/plotting.py`):
+```python
+class PlotGenerator:
+    async def generate_plot(table_data, user_prompt) -> Dict
+```
+- **Input**: Frontend JSON format with `final_columns`, `data_rows`, etc.
+- **Process**: Analyzes all received fields and logs comprehensive data structure
+- **Output**: Success response with detailed analysis of received data
+
+#### Endpoint Validation:
+- **Required Fields**: `final_columns`, `data_rows`, `feature_rows`, `feature_cols`
+- **Error Handling**: Clear error messages for missing or invalid data
+- **Logging**: Comprehensive logging of received data structure
+
+### Testing System:
+
+#### Backend Test Script (`test_plotting_endpoint.py`):
+```bash
+# Run standard tests
+python web/backend/test_plotting_endpoint.py
+
+# Test with specific JSON file
+python web/backend/test_plotting_endpoint.py success_1.json "Create a bar chart"
+```
+
+#### Test Features:
+- **Multiple Test Cases**: Tests both hierarchical (level 0) and flattened (level 2+) data
+- **Real Data**: Uses actual success_1.json and success_2.json files
+- **Comprehensive Output**: Shows all received fields and their analysis
+- **Error Handling**: Tests connection errors, timeouts, and HTTP errors
+- **File Support**: Can load and test any JSON file from frontend downloads
+
+#### Test Output Example:
+```
+🧪 Testing plotting endpoint: http://127.0.0.1:5001/plot/generate
+🔍 Test Case 1 - Level 2 Flattened Data
+📤 Sending request...
+   - Prompt: Create a bar chart showing production by BU
+   - Table shape: 6 rows × 5 columns
+   - Feature rows: ['BU']
+   - Feature cols: ['N2022 6Tđn Quý I']
+   - Flatten level: 2
+📥 Response status: 200
+✅ Success: True
+📊 Plot type: analysis
+🔍 Analysis:
+   - Received fields: ['filename', 'has_multiindex', 'header_matrix', ...]
+   - final_columns: list (value: ['Chỉ tiêu', 'Phân loại', 'BU', 'Tháng 01', 'Tháng 02'])
+   - data_rows: list (value: [['BU01', 121, 131], ['BU02', 122, 132], ...])
+```
+
+### Data Flow:
+1. **Frontend**: User sets flatten level and downloads JSON
+2. **Frontend**: JSON contains correct flatten level and corresponding data structure
+3. **Backend**: Receives JSON, validates required fields, analyzes structure
+4. **Backend**: Returns success with complete analysis of received data
+5. **Future**: Backend can implement actual plotting logic using analyzed data
+
+### Key Improvements Made:
+1. **Fixed flatten level sync**: HTML and JavaScript now use consistent initial levels
+2. **Corrected field names**: Backend expects `final_columns`/`data_rows` instead of `columns`/`data`
+3. **Added comprehensive logging**: Backend logs all received fields and data structure
+4. **Created test infrastructure**: Full test script for validating the plotting pipeline
+5. **Enhanced validation**: Better error messages and field validation
+
+This plotting system foundation allows for future implementation of actual chart generation while ensuring reliable data transfer from frontend to backend. 
