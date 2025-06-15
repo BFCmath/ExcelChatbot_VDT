@@ -3,6 +3,8 @@ progress/
 research/
 report/
 .env
+.cursorignore
+
 __pycache__/
 
 */uploads/*
@@ -14,3 +16,5 @@ web/logs/app.log
 app.log
 
 *.xlsx
+*.json
+script/*.html
