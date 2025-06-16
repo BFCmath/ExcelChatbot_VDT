@@ -46,21 +46,78 @@ window.PlottingManager = {
                 return null;
             }
             
-            // STEP 2: Find container (same as downloadTableData)
-            const container = document.querySelector(`div[data-result-index="${resultIndex}"].table-flatten-container, div[data-result-index="${resultIndex}"].table-simple-container`);
+            // STEP 2: Find SPECIFIC container for this exact resultIndex (same fix as downloadAsJSON)
+            const specificContainerSelector = `div[data-result-index="${resultIndex}"]`;
+            const allContainers = document.querySelectorAll(specificContainerSelector);
+            
+            console.log(`🔍 [PLOT CONTAINER] Looking for result index ${resultIndex}:`);
+            console.log(`  - Found ${allContainers.length} elements with data-result-index="${resultIndex}"`);
+            
+            // Find the VISIBLE/ACTIVE main container (same logic as downloadAsJSON)
+            let container = null;
+            
+            // CRITICAL: Filter out detached/invisible elements first  
+            const visibleContainers = Array.from(allContainers).filter(elem => {
+                // Check if element is attached to DOM and visible
+                const isAttached = document.contains(elem);
+                const isVisible = elem.offsetParent !== null || elem.style.display !== 'none';
+                
+                console.log(`    ${elem.tagName}.${elem.className}: attached=${isAttached}, visible=${isVisible}`);
+                return isAttached && isVisible;
+            });
+            
+            console.log(`    🔍 [PLOT] Filtered to ${visibleContainers.length} visible containers from ${allContainers.length} total`);
+            
+            for (const elem of visibleContainers) {
+                const hasTableControls = elem.querySelector('.table-controls') !== null;
+                const hasFlattening = elem.classList.contains('table-flatten-container');
+                const isSimple = elem.classList.contains('table-simple-container');
+                
+                // For hierarchical tables, check button states to find the ACTIVE container
+                let isActiveContainer = false;
+                if (hasFlattening) {
+                    const upBtn = elem.querySelector('.flatten-up');
+                    const downBtn = elem.querySelector('.flatten-down');
+                    const levelDisplay = elem.querySelector('.flatten-level-display');
+                    
+                    // Active container has functional buttons and valid level
+                    const hasValidButtons = upBtn && downBtn && levelDisplay;
+                    const levelAttr = levelDisplay?.getAttribute('data-current-level');
+                    
+                    console.log(`    ${elem.tagName}.${elem.className}: controls=${hasTableControls}, buttons=${hasValidButtons}, level=${levelAttr}`);
+                    
+                    if (hasValidButtons && levelAttr !== null) {
+                        isActiveContainer = true;
+                    }
+                } else {
+                    console.log(`    ${elem.tagName}.${elem.className}: controls=${hasTableControls}, simple=${isSimple}`);
+                    isActiveContainer = hasTableControls || isSimple;
+                }
+                
+                if (isActiveContainer) {
+                    container = elem;
+                    console.log(`    ✅ Selected as VISIBLE ACTIVE main container for plotting`);
+                    break;
+                }
+            }
+            
             if (!container) {
-                console.error('Table container not found for result index:', resultIndex);
+                console.error('❌ [PLOT] No main container found for result index:', resultIndex);
                 return null;
             }
             
             // STEP 3: Apply processing (EXACT same as downloadTableData)
             let currentTableData = { ...tableData };
             
-            // Apply current flatten level if it's a hierarchical table
+            // Apply current flatten level from THIS specific container only
             const levelDisplay = container.querySelector('.flatten-level-display');
-            if (levelDisplay) {
-                const currentLevel = parseInt(levelDisplay.getAttribute('data-current-level')) || 0;
+            const currentLevel = levelDisplay ? parseInt(levelDisplay.getAttribute('data-current-level')) || 0 : 0;
+            
+            console.log(`🔍 [PLOT LEVEL] For result ${resultIndex}: level=${currentLevel}`);
+            
+            if (currentLevel > 0 && levelDisplay) {
                 currentTableData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+                console.log(`🔄 [PLOT] Applied flatten level ${currentLevel}`);
             }
             
             // Apply current filters
@@ -103,6 +160,8 @@ window.PlottingManager = {
             
             // Get feature_cols (same as downloadAsJSON)
             const currentFeatureCols = window.TableManager.identifyCurrentFeatureCols(tableData, originalTableData, currentFeatureRows);
+            
+            console.log(`🔍 [PLOT] Feature cols calculation result: [${currentFeatureCols.join(', ')}]`);
             
             // Create plotting data structure (EXACT same as downloadAsJSON)
             // BUT ensure all numbers are plain JavaScript numbers (not numpy types)
@@ -217,6 +276,41 @@ window.PlottingManager = {
             const requestPayload = {table_data: plotDataSchema};
             console.log(`📤 [PLOT] EXACT REQUEST PAYLOAD:`, requestPayload);
             console.log(`📤 [PLOT] REQUEST JSON STRING:`, JSON.stringify(requestPayload, null, 2));
+            
+            // 🔍 ENHANCED DEBUG FOR HEADER MATRIX ISSUE
+            console.log(`📤 [PLOT] DETAILED HEADER MATRIX ANALYSIS:`);
+            console.log(`  - header_matrix exists: ${!!plotDataSchema.header_matrix}`);
+            console.log(`  - header_matrix length: ${plotDataSchema.header_matrix?.length || 'undefined'}`);
+            console.log(`  - header_matrix type: ${typeof plotDataSchema.header_matrix}`);
+            
+            if (plotDataSchema.header_matrix && plotDataSchema.header_matrix.length > 0) {
+                console.log(`  - header_matrix[0] exists: ${!!plotDataSchema.header_matrix[0]}`);
+                console.log(`  - header_matrix[0] length: ${plotDataSchema.header_matrix[0]?.length || 'undefined'}`);
+                console.log(`  - header_matrix[0] type: ${typeof plotDataSchema.header_matrix[0]}`);
+                
+                if (plotDataSchema.header_matrix[0] && plotDataSchema.header_matrix[0].length > 0) {
+                    console.log(`  - header_matrix[0][0] sample:`, plotDataSchema.header_matrix[0][0]);
+                    console.log(`  - header_matrix[0] all headers:`, plotDataSchema.header_matrix[0].map(h => ({
+                        text: h.text,
+                        colspan: h.colspan,
+                        rowspan: h.rowspan,
+                        position: h.position
+                    })));
+                }
+            } else {
+                console.log(`  - ❌ PROBLEM: header_matrix is empty or undefined!`);
+            }
+            
+            console.log(`📤 [PLOT] HEADER MATRIX STRUCTURE:`, JSON.stringify(plotDataSchema.header_matrix, null, 2));
+            console.log(`📤 [PLOT] TABLE METADATA:`);
+            console.log(`  - has_multiindex: ${plotDataSchema.has_multiindex}`);
+            console.log(`  - final_columns: [${plotDataSchema.final_columns?.join(', ') || 'undefined'}]`);
+            console.log(`  - final_columns count: ${plotDataSchema.final_columns?.length || 0}`);
+            console.log(`  - data_rows count: ${plotDataSchema.data_rows?.length || 0}`);
+            console.log(`  - data_row[0] length: ${plotDataSchema.data_rows?.[0]?.length || 0}`);
+            console.log(`  - feature_rows: [${plotDataSchema.feature_rows?.join(', ') || 'undefined'}]`);
+            console.log(`  - feature_cols: [${plotDataSchema.feature_cols?.join(', ') || 'undefined'}]`);
+            console.log(`  - flatten_level_applied: ${plotDataSchema.flatten_level_applied}`);
             
             // Validate critical fields before sending
             if (!plotDataSchema.final_columns || !plotDataSchema.data_rows) {
@@ -578,9 +672,7 @@ window.downloadChart = function(chartType) {
     window.PlottingManager.downloadChart(chartType);
 };
 
-window.downloadBothCharts = function() {
-    window.PlottingManager.downloadBothCharts();
-};
+
 
 window.hidePlotModal = function() {
     window.PlottingManager.hidePlotModal();

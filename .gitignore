@@ -18,3 +18,4 @@ app.log
 *.xlsx
 *.json
 script/*.html
+cursor_docs/*

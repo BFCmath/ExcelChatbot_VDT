@@ -162,7 +162,21 @@ function setupTableToggleEvents(container) {
         let currentLevel = parseInt(levelDisplay.getAttribute('data-current-level')) || Math.max(maxLevels - 1, 0);
         
         function updateTable() {
+            // 🔍 DEBUG: Log level change for this specific table
+            console.log(`🔄 [LEVEL CHANGE] Result ${resultIndex}: Changed to level ${currentLevel}`);
+            console.log(`📋 [LEVEL CHANGE] Table filename: ${tableData.filename}`);
+            console.log(`📊 [LEVEL CHANGE] Original header matrix: ${tableData.header_matrix ? tableData.header_matrix.length : 0} levels`);
+            if (tableData.header_matrix) {
+                tableData.header_matrix.forEach((level, idx) => {
+                    console.log(`  Level ${idx}: [${level.map(h => `"${h.text}"(${h.colspan}c,${h.rowspan}r)`).join(', ')}]`);
+                });
+            }
+            
             let flattenedData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+            
+            // 🔍 DEBUG: Log flattened result header
+            console.log(`📊 [LEVEL CHANGE] Flattened header matrix: ${flattenedData.header_matrix ? flattenedData.header_matrix.length : 0} levels`);
+            console.log(`📋 [LEVEL CHANGE] Flattened columns: [${flattenedData.final_columns?.join(', ') || 'none'}]`);
             
             // Check feature column toggle state
             const featureColCheckbox = flattenContainer.querySelector('.feature-col-checkbox');
@@ -213,6 +227,10 @@ function setupTableToggleEvents(container) {
             // Update display text - but keep it hidden as per UI design
             levelDisplay.textContent = currentLevel === 0 ? 'Hierarchical' : `Flatten L${currentLevel}`;
             levelDisplay.setAttribute('data-current-level', currentLevel);
+            
+            // 🔍 DEBUG: Confirm level update
+            console.log(`✅ [LEVEL CHANGE] Result ${resultIndex}: Level updated to ${currentLevel}, display text: "${levelDisplay.textContent}"`);
+            console.log(`🔘 [LEVEL CHANGE] Button states: UP disabled=${upBtn.disabled}, DOWN disabled=${downBtn.disabled}`);
         }
         
         upBtn.addEventListener('click', function() {
@@ -501,11 +519,116 @@ function downloadAsJSON(tableData, resultIndex) {
     // Get the original backend data 
     const originalTableData = window.FlattenManager.getTableDataFromResult(resultIndex);
     
-    // Find the correct table container (not just any element with data-result-index)
-    // Look for the main container that has both data-result-index AND contains table controls
-    const container = document.querySelector(`div[data-result-index="${resultIndex}"].table-flatten-container, div[data-result-index="${resultIndex}"].table-simple-container`);
-    const levelDisplay = container?.querySelector('.flatten-level-display');
-    const currentFlattenLevel = levelDisplay ? parseInt(levelDisplay.getAttribute('data-current-level')) || 0 : 0;
+    // Find the SPECIFIC table container for this exact resultIndex
+    // CRITICAL: Must be the exact container, not influenced by other tables on the page
+    const specificContainerSelector = `div[data-result-index="${resultIndex}"]`;
+    const allContainers = document.querySelectorAll(specificContainerSelector);
+    
+    console.log(`🔍 [CONTAINER DEBUG] Looking for result index ${resultIndex} (type: ${typeof resultIndex}):`);
+    console.log(`  - Found ${allContainers.length} elements with data-result-index="${resultIndex}"`);
+    
+    // 🔍 CRITICAL: Show ALL table containers in DOM to detect pollution
+    const allTableContainers = document.querySelectorAll('.table-flatten-container, .table-simple-container');
+    console.log(`🌍 [DOM STATE] Total table containers in DOM: ${allTableContainers.length}`);
+    allTableContainers.forEach((container, index) => {
+        const elemResultIndex = container.getAttribute('data-result-index');
+        const levelDisplay = container.querySelector('.flatten-level-display');
+        const level = levelDisplay ? levelDisplay.getAttribute('data-current-level') : 'none';
+        const visible = container.offsetParent !== null;
+        console.log(`  Container ${index}: resultIndex=${elemResultIndex}, level=${level}, visible=${visible}, class=${container.className}`);
+    });
+    
+    // Find the VISIBLE/ACTIVE main container (not detached/duplicate containers)
+    let container = null;
+    let levelDisplay = null;
+    let currentFlattenLevel = 0;
+    
+    // CRITICAL: Filter out detached/invisible elements first
+    const visibleContainers = Array.from(allContainers).filter(elem => {
+        // Check if element is attached to DOM and visible
+        const isAttached = document.contains(elem);
+        const isVisible = elem.offsetParent !== null || elem.style.display !== 'none';
+        
+        // Additional verification: Check if this element actually belongs to the right table
+        const elemResultIndex = parseInt(elem.getAttribute('data-result-index'));
+        const resultIndexMatch = elemResultIndex === resultIndex;
+        
+        console.log(`    ${elem.tagName}.${elem.className}: attached=${isAttached}, visible=${isVisible}, resultIndex=${elemResultIndex}, match=${resultIndexMatch}`);
+        return isAttached && isVisible && resultIndexMatch;
+    });
+    
+    console.log(`    🔍 Filtered to ${visibleContainers.length} visible containers from ${allContainers.length} total`);
+    
+    for (const elem of visibleContainers) {
+        const hasTableControls = elem.querySelector('.table-controls') !== null;
+        const hasFlattening = elem.classList.contains('table-flatten-container');
+        const isSimple = elem.classList.contains('table-simple-container');
+        
+        // For hierarchical tables, check button states to find the ACTIVE container
+        let isActiveContainer = false;
+        if (hasFlattening) {
+            const upBtn = elem.querySelector('.flatten-up');
+            const downBtn = elem.querySelector('.flatten-down');
+            const levelDisplay = elem.querySelector('.flatten-level-display');
+            
+            // Active container has functional buttons and valid level
+            const hasValidButtons = upBtn && downBtn && levelDisplay;
+            const levelAttr = levelDisplay?.getAttribute('data-current-level');
+            const buttonsResponsive = upBtn && !upBtn.disabled !== !downBtn.disabled; // At least one should be enabled
+            
+            console.log(`    ${elem.tagName}.${elem.className}: controls=${hasTableControls}, buttons=${hasValidButtons}, level=${levelAttr}, responsive=${buttonsResponsive}`);
+            
+            if (hasValidButtons && levelAttr !== null) {
+                isActiveContainer = true;
+            }
+        } else {
+            console.log(`    ${elem.tagName}.${elem.className}: controls=${hasTableControls}, simple=${isSimple}`);
+            isActiveContainer = hasTableControls || isSimple;
+        }
+        
+        if (isActiveContainer) {
+            container = elem;
+            
+            // 🔍 CRITICAL DEBUG: Show full container details
+            const containerLevelDisplay = container.querySelector('.flatten-level-display');
+            const containerLevel = containerLevelDisplay ? containerLevelDisplay.getAttribute('data-current-level') : 'none';
+            const containerParent = container.parentElement;
+            const containerIndex = Array.from(document.querySelectorAll('.table-flatten-container, .table-simple-container')).indexOf(container);
+            
+            console.log(`    ✅ Selected as VISIBLE ACTIVE main container:`);
+            console.log(`       🏷️ Result Index: ${resultIndex}`);
+            console.log(`       📊 Container Level: ${containerLevel}`);
+            console.log(`       📍 Container Index in DOM: ${containerIndex}`);
+            console.log(`       🔗 Parent: ${containerParent?.className || 'none'}`);
+            console.log(`       📂 Container ID/classes: ${container.className}`);
+            
+            break;
+        }
+    }
+    
+    if (!container) {
+        console.error(`❌ [CONTAINER] No active main container found for result index ${resultIndex}`);
+        currentFlattenLevel = 0;
+    } else {
+        console.log(`✅ [CONTAINER] Using ACTIVE container: ${container.className}`);
+        
+        // Get level display from THIS specific ACTIVE container only
+        levelDisplay = container.querySelector('.flatten-level-display');
+        currentFlattenLevel = levelDisplay ? parseInt(levelDisplay.getAttribute('data-current-level')) || 0 : 0;
+        
+        console.log(`🔍 [LEVEL DEBUG] For result ${resultIndex}:`);
+        console.log(`  - Level display found: ${levelDisplay ? 'Yes' : 'No'}`);
+        console.log(`  - Level attribute: ${levelDisplay?.getAttribute('data-current-level') || 'N/A'}`);
+        console.log(`  - Calculated level: ${currentFlattenLevel}`);
+        
+        // VERIFY by checking button states
+        if (container.classList.contains('table-flatten-container')) {
+            const upBtn = container.querySelector('.flatten-up');
+            const downBtn = container.querySelector('.flatten-down');
+            console.log(`  - UP button disabled: ${upBtn?.disabled} (level >= max: ${currentFlattenLevel >= parseInt(container.getAttribute('data-max-levels') || '0')})`);
+            console.log(`  - DOWN button disabled: ${downBtn?.disabled} (level <= 0: ${currentFlattenLevel <= 0})`);
+        }
+    }
     
     // Debug logging for multi-table download issue
     console.log(`🔍 [DOWNLOAD DEBUG] Result Index: ${resultIndex}`);
@@ -550,6 +673,41 @@ function downloadAsJSON(tableData, resultIndex) {
         }
     };
     
+    // 🔍 ENHANCED DEBUG FOR HEADER MATRIX DOWNLOAD ISSUE
+    console.log(`💾 [DOWNLOAD] DETAILED HEADER MATRIX ANALYSIS:`);
+    console.log(`  - header_matrix exists: ${!!plotDataSchema.header_matrix}`);
+    console.log(`  - header_matrix length: ${plotDataSchema.header_matrix?.length || 'undefined'}`);
+    console.log(`  - header_matrix type: ${typeof plotDataSchema.header_matrix}`);
+    
+    if (plotDataSchema.header_matrix && plotDataSchema.header_matrix.length > 0) {
+        console.log(`  - header_matrix[0] exists: ${!!plotDataSchema.header_matrix[0]}`);
+        console.log(`  - header_matrix[0] length: ${plotDataSchema.header_matrix[0]?.length || 'undefined'}`);
+        console.log(`  - header_matrix[0] type: ${typeof plotDataSchema.header_matrix[0]}`);
+        
+        if (plotDataSchema.header_matrix[0] && plotDataSchema.header_matrix[0].length > 0) {
+            console.log(`  - header_matrix[0][0] sample:`, plotDataSchema.header_matrix[0][0]);
+            console.log(`  - header_matrix[0] all headers:`, plotDataSchema.header_matrix[0].map(h => ({
+                text: h.text,
+                colspan: h.colspan,
+                rowspan: h.rowspan,
+                position: h.position
+            })));
+        }
+    } else {
+        console.log(`  - ❌ PROBLEM: header_matrix is empty or undefined!`);
+    }
+    
+    console.log(`💾 [DOWNLOAD] HEADER MATRIX STRUCTURE:`, JSON.stringify(plotDataSchema.header_matrix, null, 2));
+    console.log(`💾 [DOWNLOAD] TABLE METADATA:`);
+    console.log(`  - has_multiindex: ${plotDataSchema.has_multiindex}`);
+    console.log(`  - final_columns: [${plotDataSchema.final_columns?.join(', ') || 'undefined'}]`);
+    console.log(`  - final_columns count: ${plotDataSchema.final_columns?.length || 0}`);
+    console.log(`  - data_rows count: ${plotDataSchema.data_rows?.length || 0}`);
+    console.log(`  - data_row[0] length: ${plotDataSchema.data_rows?.[0]?.length || 0}`);
+    console.log(`  - feature_rows: [${plotDataSchema.feature_rows?.join(', ') || 'undefined'}]`);
+    console.log(`  - feature_cols: [${plotDataSchema.feature_cols?.join(', ') || 'undefined'}]`);
+    console.log(`  - flatten_level_applied: ${plotDataSchema.flatten_level_applied}`);
+    
     window.Utils.saveJsonToFile(plotDataSchema, filename);
     console.log(`📊 Plotting data saved to: ${filename}`);
     console.log(`📈 Result Index: ${resultIndex}`);
@@ -561,19 +719,32 @@ function downloadAsJSON(tableData, resultIndex) {
 
 // Identify feature_cols in the current flattened table
 function identifyCurrentFeatureCols(currentTableData, originalTableData, currentFeatureRows) {
-    if (!originalTableData || !originalTableData.feature_cols || originalTableData.feature_cols.length === 0) {
-        return [];
-    }
-    
     const isHierarchical = currentTableData.has_multiindex;
     const currentColumns = currentTableData.final_columns || [];
     const featureRowsCount = currentFeatureRows.length;
     
     console.log(`🔍 Identifying feature cols:`);
-    console.log(`  - Original feature_cols: [${originalTableData.feature_cols.join(', ')}]`);
+    console.log(`  - Original feature_cols: [${originalTableData?.feature_cols?.join(', ') || 'MISSING'}]`);
     console.log(`  - Current columns: [${currentColumns.join(', ')}]`);
     console.log(`  - Feature rows count: ${featureRowsCount}`);
     console.log(`  - Is hierarchical: ${isHierarchical}`);
+    
+    // Remove early return - calculate feature_cols even if original is missing
+    if (!originalTableData || !originalTableData.feature_cols || originalTableData.feature_cols.length === 0) {
+        console.warn(`🔧 Original feature_cols missing, using fallback calculation`);
+        
+        if (isHierarchical) {
+            // Fallback for hierarchical: Find data headers from header matrix
+            const parentHeaders = findTopLevelDataParents(currentTableData, originalTableData);
+            console.log(`  - Fallback hierarchical feature_cols: [${parentHeaders.join(', ')}]`);
+            return parentHeaders;
+        } else {
+            // Fallback for flattened: Assume all columns after feature rows are data columns
+            const dataColumns = currentColumns.slice(featureRowsCount);
+            console.log(`  - Fallback flattened feature_cols: [${dataColumns.join(', ')}]`);
+            return dataColumns;
+        }
+    }
     
     if (isHierarchical) {
         // LEVEL 0 (Hierarchical): Return top-level parent headers that span data columns
@@ -597,14 +768,15 @@ function findTopLevelDataParents(currentTableData, originalTableData) {
     
     const topLevel = headerMatrix[0] || [];
     const dataParents = [];
-    const originalFeatureRows = originalTableData.feature_rows || [];
+    const originalFeatureRows = originalTableData?.feature_rows || [];
     
     for (const header of topLevel) {
-        // Parent headers for data columns have colspan > 1 AND are not feature rows
+        // A header is a data column if it's not a feature row header
+        // Remove the incorrect colspan > 1 requirement - single data columns also have colspan = 1
         const isFeatureRowHeader = originalFeatureRows.includes(header.text);
         
-        if (!isFeatureRowHeader && header.colspan > 1) {
-            // This is a parent header spanning multiple data columns
+        if (!isFeatureRowHeader) {
+            // This is a data column header (either single or spanning multiple columns)
             dataParents.push(header.text);
         }
     }

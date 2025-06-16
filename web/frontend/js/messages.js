@@ -183,7 +183,11 @@ function formatQueryResults(response) {
     
     if (response.results && Array.isArray(response.results) && response.results.length > 0) {
         console.log('📋 [API] Processing results array with length:', response.results.length);
-        response.results.forEach((result, resultIndex) => {
+        response.results.forEach((result, localIndex) => {
+            // 🔧 FIX: Use globally unique resultIndex instead of local index
+            const globalResultIndex = window.AppConfig.globalTableData.length;
+            console.log(`🆔 [TABLE] Assigning global resultIndex ${globalResultIndex} for local index ${localIndex}`);
+            const resultIndex = globalResultIndex;
             html += `<div class="result-section">`;
             html += `<h4>File: ${result.filename}</h4>`;
             html += `<p><strong>Query:</strong> ${result.query}</p>`;

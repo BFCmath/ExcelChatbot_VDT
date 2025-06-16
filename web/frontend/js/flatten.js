@@ -49,27 +49,20 @@ function createFlattenedTableData(originalTableInfo, flattenLevel) {
         return originalTableInfo;
     }
 
-    // If flatten level is >= total levels - 1, create completely flattened table
-    if (flattenLevel >= totalLevels - 1) {
-        if (window.FlattenDebugLogger) {
-            window.FlattenDebugLogger.logForLevel(flattenLevel, 'COMPLETE_FLATTENING', `Level ${flattenLevel} >= ${totalLevels - 1}, doing complete flattening`);
-        }
-        const result = createCompletelyFlattenedTable(originalTableInfo, flattenLevel);
-        if (window.FlattenDebugLogger) {
-            window.FlattenDebugLogger.logTableStructure(result, `Complete flattening result for level ${flattenLevel}`, flattenLevel);
-        }
-        return result;
-    }
-
-    // Create partially flattened table
+    // ALL flattening levels use the same normal table logic
     // flattenLevel 1 = combine first 2 levels (0+1)
     // flattenLevel 2 = combine first 3 levels (0+1+2), etc.
+    // flattenLevel >= totalLevels-1 = combine ALL levels (normal table result)
     if (window.FlattenDebugLogger) {
-        window.FlattenDebugLogger.logForLevel(flattenLevel, 'PARTIAL_FLATTENING', `Level ${flattenLevel}, combining first ${flattenLevel + 1} levels`);
+        if (flattenLevel >= totalLevels - 1) {
+            window.FlattenDebugLogger.logForLevel(flattenLevel, 'ALL_LEVELS_FLATTENING', `Level ${flattenLevel} >= ${totalLevels - 1}, combining all ${totalLevels} levels using normal table logic`);
+        } else {
+            window.FlattenDebugLogger.logForLevel(flattenLevel, 'PARTIAL_FLATTENING', `Level ${flattenLevel}, combining first ${flattenLevel + 1} levels`);
+        }
     }
     const result = createPartiallyFlattenedTable(originalTableInfo, flattenLevel);
     if (window.FlattenDebugLogger) {
-        window.FlattenDebugLogger.logTableStructure(result, `Partial flattening result for level ${flattenLevel}`, flattenLevel);
+        window.FlattenDebugLogger.logTableStructure(result, `Flattening result for level ${flattenLevel}`, flattenLevel);
     }
     return result;
 }
@@ -453,10 +446,20 @@ function buildHeaderMatrixForLevel(originalTableInfo, flattenLevel) {
         });
     }
     
+    // Determine the correct final_columns based on flattening level
+    let finalColumns;
+    if (newNLevels === 1) {
+        // Completely flattened: use the combined names as final columns
+        finalColumns = combinedNames;
+    } else {
+        // Still hierarchical: keep original final columns
+        finalColumns = originalTableInfo.final_columns;
+    }
+    
     return {
         has_multiindex: newHeaderMatrix.length > 1,
         header_matrix: newHeaderMatrix,
-        final_columns: originalTableInfo.final_columns // Keep original final columns
+        final_columns: finalColumns
     };
 }
 
@@ -472,123 +475,7 @@ function createPartiallyFlattenedTable(originalTableInfo, flattenLevel) {
     };
 }
 
-// Create completely flattened table using backend logic
-function createCompletelyFlattenedTable(originalTableInfo, flattenLevel = null) {
-    const headerMatrix = originalTableInfo.header_matrix;
-    const finalColumns = [];
-    
-    // Build flattened column names using the exact backend logic
-    const columnCount = originalTableInfo.col_count;
-    
-    if (window.FlattenDebugLogger && flattenLevel !== null) {
-        window.FlattenDebugLogger.logForLevel(flattenLevel, 'COMPLETE_FLATTEN_START', 'Starting complete flattening', {
-            columnCount: columnCount,
-            headerMatrixLevels: headerMatrix.length
-        });
-    }
-    
-    for (let colIndex = 0; colIndex < columnCount; colIndex++) {
-        // Get all parts of the column tuple by traversing levels
-        const columnTuple = [];
-        
-        if (window.FlattenDebugLogger && flattenLevel !== null) {
-            window.FlattenDebugLogger.logForLevel(flattenLevel, 'COLUMN_ANALYSIS_START', `Analyzing column ${colIndex}`, {
-                columnIndex: colIndex
-            });
-        }
-        
-        for (let levelIndex = 0; levelIndex < headerMatrix.length; levelIndex++) {
-            const level = headerMatrix[levelIndex];
-            const headerForColumn = findHeaderForColumn(level, colIndex, levelIndex, headerMatrix);
-            
-            if (window.FlattenDebugLogger && flattenLevel !== null) {
-                window.FlattenDebugLogger.logForLevel(flattenLevel, 'LEVEL_HEADER_SEARCH', `Column ${colIndex}, Level ${levelIndex}`, {
-                    columnIndex: colIndex,
-                    levelIndex: levelIndex,
-                    foundHeader: headerForColumn ? headerForColumn.text : "NOT_FOUND",
-                    headerDetails: headerForColumn
-                });
-            }
-            
-            if (headerForColumn && headerForColumn.text) {
-                columnTuple.push(headerForColumn.text);
-            }
-        }
-        
-        if (window.FlattenDebugLogger && flattenLevel !== null) {
-            window.FlattenDebugLogger.logForLevel(flattenLevel, 'COLUMN_TUPLE_EXTRACTION', `Column ${colIndex} tuple extraction`, {
-                columnIndex: colIndex,
-                extractedTuple: columnTuple,
-                headerMatrix: headerMatrix
-            });
-        }
-        
-        // Apply backend flattening logic: remove placeholders and collapse consecutive duplicates
-        const filteredTuple = columnTuple.filter(part => 
-            part && part !== 'Header' && part !== 'nan' && part.trim() !== ''
-        );
-        const meaningfulParts = [];
-        for (const part of filteredTuple) {
-            if (meaningfulParts.length === 0 || meaningfulParts[meaningfulParts.length - 1] !== part) {
-                meaningfulParts.push(part);
-            }
-        }
-        
-        let flattenedName;
-        
-        if (meaningfulParts.length === 0) {
-            // All parts are "Header" or nan, use a default name
-            flattenedName = "Column";
-        } else if (meaningfulParts.length === 1) {
-            // Only one meaningful part (vertical merge case), use as is
-            flattenedName = meaningfulParts[0];
-        } else {
-            // Multiple meaningful parts (horizontal merge case)
-            // Create acronyms for all parts EXCEPT the last one (leaf level)
-            const acronymParts = [];
-            
-            // Process all parts except the last one with acronyms
-            for (let j = 0; j < meaningfulParts.length - 1; j++) {
-                const acronym = createAcronym(meaningfulParts[j]);
-                // Debug log acronym generation
-                if (window.FlattenDebugLogger && flattenLevel !== null) {
-                    window.FlattenDebugLogger.logAcronymGeneration(meaningfulParts[j], acronym, flattenLevel);
-                }
-                acronymParts.push(acronym);
-            }
-            
-            // Keep the last part (leaf level) as-is
-            acronymParts.push(meaningfulParts[meaningfulParts.length - 1]);
-            
-            flattenedName = acronymParts.join(' ');
-        }
-        
-        // Debug log column combination
-        if (window.FlattenDebugLogger && flattenLevel !== null) {
-            window.FlattenDebugLogger.logColumnCombination(colIndex, columnTuple, meaningfulParts, flattenedName, flattenLevel);
-        }
-        
-        finalColumns.push(flattenedName);
-    }
-    
-    // Debug log complete flattening result
-    if (window.FlattenDebugLogger && flattenLevel !== null) {
-        window.FlattenDebugLogger.logCompleteFlattening(originalTableInfo, finalColumns, flattenLevel);
-    }
-    
-    return {
-        ...originalTableInfo,
-        has_multiindex: false,
-        header_matrix: [[finalColumns.map((col, index) => ({
-            text: col,
-            colspan: 1,
-            rowspan: 1,
-            position: index,
-            level: 0
-        }))]],
-        final_columns: finalColumns
-    };
-}
+
 
 // Find header for specific column position
 function findHeaderForColumn(level, columnIndex, levelIndex, headerMatrix) {
@@ -711,7 +598,7 @@ function debugHeaders(resultIndex, level) {
     if (level === 0) {
         console.log('🏗️ Level 0: No flattening (original hierarchical structure)');
     } else if (level >= totalLevels - 1) {
-        console.log(`🔄 Level ${level}: Completely flattened (all ${totalLevels} levels combined)`);
+        console.log(`🔄 Level ${level}: All levels flattened (combining all ${totalLevels} levels)`);
     } else {
         console.log(`🔄 Level ${level}: Combining first ${level + 1} levels, leaving ${totalLevels - level - 1} levels hierarchical`);
     }
@@ -893,20 +780,35 @@ function filterTableDataByRedundantColumns(tableData, hideRedundantColumns = tru
         filteredHeaderMatrix = updateHeaderMatrixAfterColumnRemoval(tableData.header_matrix, redundantIndices);
         console.log('📋 Original header matrix:', tableData.header_matrix);
         console.log('📋 Filtered header matrix:', filteredHeaderMatrix);
+        
+        // 🔧 FIX: If header matrix became empty but we still have columns, rebuild it
+        const hasEmptyLevels = filteredHeaderMatrix.some(level => level.length === 0);
+        if (hasEmptyLevels && filteredFinalColumns.length > 0) {
+            console.log('🔧 [REBUILD] Header matrix has empty levels, rebuilding from final_columns...');
+            console.log(`  - final_columns to use: [${filteredFinalColumns.join(', ')}]`);
+            
+            // Rebuild header matrix with single level containing all remaining columns
+            filteredHeaderMatrix = [filteredFinalColumns.map((col, index) => ({
+                text: col,
+                colspan: 1,
+                rowspan: 1,
+                position: index,
+                level: 0
+            }))];
+            
+            console.log('🔧 [REBUILD] Rebuilt header matrix:', filteredHeaderMatrix);
+        }
     }
     
-    // For completely flattened tables, we need to also filter final_columns
+    // Filter final_columns consistently for all table types
     let filteredFinalColumns = tableData.final_columns;
     if (tableData.final_columns && tableData.final_columns.length > 0) {
-        // Check if this is a completely flattened table (single header level)
-        if (!tableData.has_multiindex || (tableData.header_matrix && tableData.header_matrix.length === 1)) {
-            console.log('🔄 Filtering final_columns for flattened table...');
-            filteredFinalColumns = tableData.final_columns.filter((_, index) => 
-                !redundantIndices.includes(index)
-            );
-            console.log('📋 Original final_columns:', tableData.final_columns);
-            console.log('📋 Filtered final_columns:', filteredFinalColumns);
-        }
+        console.log('🔄 Filtering final_columns...');
+        filteredFinalColumns = tableData.final_columns.filter((_, index) => 
+            !redundantIndices.includes(index)
+        );
+        console.log('📋 Original final_columns:', tableData.final_columns);
+        console.log('📋 Filtered final_columns:', filteredFinalColumns);
     }
     
     const result = {
@@ -930,10 +832,14 @@ function updateHeaderMatrixAfterColumnRemoval(headerMatrix, removedIndices) {
         return headerMatrix;
     }
     
+    console.log(`🔧 [HEADER_MATRIX_UPDATE] Updating header matrix after column removal:`);
+    console.log(`  - Original matrix levels: ${headerMatrix.length}`);
+    console.log(`  - Removed indices: [${removedIndices.join(', ')}]`);
+    
     // Sort removed indices in descending order to avoid position shifting issues
     const sortedRemovedIndices = [...removedIndices].sort((a, b) => b - a);
     
-    return headerMatrix.map(level => {
+    const updatedMatrix = headerMatrix.map((level, levelIdx) => {
         const updatedLevel = [];
         
         level.forEach(header => {
@@ -964,8 +870,52 @@ function updateHeaderMatrixAfterColumnRemoval(headerMatrix, removedIndices) {
             }
         });
         
+        console.log(`  - Level ${levelIdx}: ${level.length} → ${updatedLevel.length} headers`);
         return updatedLevel;
     });
+    
+    // 🔧 FIX: Check if any level became empty after filtering
+    const hasEmptyLevels = updatedMatrix.some(level => level.length === 0);
+    
+    if (hasEmptyLevels) {
+        console.log(`⚠️ [HEADER_MATRIX_UPDATE] Some levels became empty after filtering!`);
+        console.log(`  - Matrix before fix:`, updatedMatrix.map(level => level.length));
+        
+        // If we have empty levels, we need to rebuild the matrix
+        // This can happen when all headers in a level are completely removed
+        
+        // Calculate the number of remaining columns
+        const totalRemovedCols = removedIndices.length;
+        let originalColCount = 0;
+        if (headerMatrix.length > 0 && headerMatrix[0].length > 0) {
+            // Find the maximum position + colspan in the original matrix
+            originalColCount = Math.max(...headerMatrix.flat().map(h => h.position + h.colspan));
+        }
+        const remainingColCount = originalColCount - totalRemovedCols;
+        
+        console.log(`  - Original columns: ${originalColCount}, Remaining: ${remainingColCount}`);
+        
+        if (remainingColCount > 0) {
+            // Filter out empty levels and rebuild positions
+            const nonEmptyLevels = updatedMatrix.filter(level => level.length > 0);
+            
+            if (nonEmptyLevels.length === 0) {
+                console.log(`  - All levels empty, creating minimal single-level matrix`);
+                // If all levels are empty, create a minimal structure
+                // This will be fixed later when we know the actual final_columns
+                return [[]]; // Return empty but valid structure
+            } else {
+                console.log(`  - Using ${nonEmptyLevels.length} non-empty levels`);
+                return nonEmptyLevels;
+            }
+        } else {
+            console.log(`  - No remaining columns, returning empty structure`);
+            return [[]]; // Return empty but valid structure
+        }
+    }
+    
+    console.log(`✅ [HEADER_MATRIX_UPDATE] Updated matrix:`, updatedMatrix.map(level => level.length));
+    return updatedMatrix;
 }
 
 // Identify NaN rows (rows where all data columns are null/undefined)
@@ -1033,7 +983,6 @@ window.FlattenManager = {
     storeTableData,
     storeBackendMetadata,
     createFlattenedTableData,
-    createCompletelyFlattenedTable,
     findHeaderForColumn,
     createAcronym,
     debugHeaders,
@@ -1127,9 +1076,10 @@ function analyzeColumnStructure(resultIndex) {
         console.log(`  Full tuple: [${columnTuple.join(', ')}]`);
     }
     
-    // Test complete flattening
-    console.log('\n🔄 Testing Complete Flattening:');
-    const flattened = createCompletelyFlattenedTable(tableData);
+    // Test all-level flattening using normal table logic
+    console.log('\n🔄 Testing All-Level Flattening:');
+    const totalLevels = tableData.header_matrix.length;
+    const flattened = createFlattenedTableData(tableData, totalLevels - 1);
     console.log('Final columns:', flattened.final_columns);
     
     return {

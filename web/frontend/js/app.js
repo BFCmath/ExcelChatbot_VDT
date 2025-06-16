@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'AliasManager',
         'ConversationManager',
         'APIManager',
-        'EventManager'
+        'EventManager',
+        'PlottingManager'
     ];
     
     const missingModules = requiredModules.filter(module => !window[module]);
