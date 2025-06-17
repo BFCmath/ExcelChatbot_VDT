@@ -30,12 +30,12 @@ def extract_headers_only(excel_file_path, number_of_row_header):
         raise
 
 def clean_unnamed_header(df, number_of_row_header):
-    def sua_ten_tieu_de_phu(ten_tieu_de_phu):
-        if isinstance(ten_tieu_de_phu, str) and ten_tieu_de_phu.startswith("Unnamed:"):
+    def clean_subheader_name(subheader_name):
+        if isinstance(subheader_name, str) and subheader_name.startswith("Unnamed:"):
             return "Header"
-        return ten_tieu_de_phu
+        return subheader_name
     for i in range(number_of_row_header)[1:]:
-        df.rename(columns=sua_ten_tieu_de_phu, level=i, inplace=True)
+        df.rename(columns=clean_subheader_name, level=i, inplace=True)
 
     return df
 

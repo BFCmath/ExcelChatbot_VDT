@@ -283,7 +283,7 @@ function formatQueryResults(response) {
                     html += `<i class="fas fa-download"></i>`;
                     html += `<span class="download-label">Download</span>`;
                     html += `</button>`;
-                    html += `<button class="plot-table-btn" data-result-index="${resultIndex}" title="Generate Sunburst Charts">`;
+                    html += `<button class="plot-table-btn" data-result-index="${resultIndex}" title="Generate Charts">`;
                     html += `<i class="fas fa-chart-pie"></i>`;
                     html += `<span class="plot-label">Plot</span>`;
                     html += `</button>`;

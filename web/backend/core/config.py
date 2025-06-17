@@ -2,18 +2,40 @@ import os
 import logging
 from pathlib import Path
 import dotenv
+import threading
+from itertools import cycle
 
 # Load environment variables from the same directory as this file
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 dotenv.load_dotenv(dotenv_path=env_path)
 
-# LLM Configuration
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash-preview-04-17")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY_1")
+# --- LLM Configuration with Key Cycling ---
 
-# Validate required environment variables
-if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY_1 environment variable is required")
+# Find all GOOGLE_API_KEY_n variables in the environment
+api_keys = [
+    key for key in [os.getenv(f"GOOGLE_API_KEY_{i+1}") for i in range(10)] # Check for up to 10 keys
+    if key is not None and key.strip() != ""
+]
+
+if not api_keys:
+    raise ValueError("At least one GOOGLE_API_KEY_n environment variable is required (e.g., GOOGLE_API_KEY_1)")
+
+# Create a thread-safe, cycling iterator for the API keys
+_api_key_cycler = cycle(api_keys)
+_api_key_lock = threading.Lock()
+
+def get_next_api_key():
+    """
+    Safely returns the next API key from the list in a thread-safe manner.
+    """
+    with _api_key_lock:
+        return next(_api_key_cycler)
+
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash-preview-04-17")
+# Note: GOOGLE_API_KEY is now managed by get_next_api_key()
+# The old GOOGLE_API_KEY constant is deprecated.
+
+# --- End LLM Configuration ---
 
 # Application Configuration
 # Use absolute path for uploads folder to ensure consistent access from all modules
@@ -72,26 +94,8 @@ def setup_logging():
     
     return logging.getLogger(__name__)
 
-def safe_log_message(logger, level, message):
-    """Safely log messages with Unicode characters."""
-    try:
-        # Try normal logging first
-        logger.log(level, message)
-    except UnicodeEncodeError:
-        # If Unicode fails, encode safely
-        safe_message = message.encode('ascii', errors='replace').decode('ascii')
-        logger.log(level, f"[UNICODE_SAFE] {safe_message}")
-    except Exception as e:
-        # Last resort fallback
-        logger.log(level, f"[LOGGING_ERROR] Failed to log message: {str(e)}")
-
 # File validation
 def is_allowed_file(filename):
     """Check if file extension is allowed."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# You can add other configurations here
-# For example:
-# UPLOAD_FOLDER = 'web/backend/uploads'
-# MAX_CONTENT_LENGTH = 16 * 1024 * 1024 # 16 MB 

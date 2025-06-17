@@ -4,8 +4,16 @@ import numpy as np
 import re
 from .utils import read_file
 from .prompt import DECOMPOSER_PROMPT, ROW_HANDLER_PROMPT, COL_HANDLER_PROMPT, FEATURE_ANALYSIS_PROMPT, SCHEMA_ANALYSIS_PROMPT
+from .config import get_next_api_key, LLM_MODEL
+from langchain_google_genai import ChatGoogleGenerativeAI
 
-def get_schema(excel_content, feature_name_content, llm):
+def get_llm_instance():
+    """Creates and returns an instance of the ChatGoogleGenerativeAI LLM."""
+    api_key = get_next_api_key()
+    return ChatGoogleGenerativeAI(model=LLM_MODEL, google_api_key=api_key, temperature=0)
+
+def get_schema(excel_content, feature_name_content):
+    llm = get_llm_instance()
     # Create the prompt using the template from prompt.py
     prompt = SCHEMA_ANALYSIS_PROMPT.format(excel_content=excel_content, feature_name_content=feature_name_content)
     # Create the message
@@ -61,17 +69,17 @@ def parse_llm_feature_name_output(output):
         'feature_cols': feature_cols
     }
 
-def get_feature_names_from_headers(headers_content, llm):
+def get_feature_names_from_headers(headers_content):
     """
     Get feature names from header content only (not full file content).
     
     Args:
         headers_content (str): CSV format of only the header rows
-        llm: Language model instance
         
     Returns:
         dict: Dictionary containing 'is_matrix_table', 'feature_rows', and 'feature_cols'
     """
+    llm = get_llm_instance()
     # Create the prompt using the template from prompt.py
     prompt = FEATURE_ANALYSIS_PROMPT.format(excel_content=headers_content)
     # Create the message
@@ -86,7 +94,8 @@ def get_feature_names_from_headers(headers_content, llm):
         raise
     return parse_llm_feature_name_output(response.content)
 
-def get_feature_names(excel_file_path, llm):
+def get_feature_names(excel_file_path):
+    llm = get_llm_instance()
     excel_content = read_file(excel_file_path)
     # Create the prompt using the template from prompt.py
     prompt = FEATURE_ANALYSIS_PROMPT.format(excel_content=excel_content)
@@ -102,7 +111,7 @@ def get_feature_names(excel_file_path, llm):
     return parse_llm_feature_name_output(response.content)
 
 
-def splitter(query, feature_rows, feature_cols, row_structure, col_structure, llm):
+def splitter(query, feature_rows, feature_cols, row_structure, col_structure):
     """
     Advanced multi-agent query processing using decomposer, row handler, and column handler.
     
@@ -112,11 +121,11 @@ def splitter(query, feature_rows, feature_cols, row_structure, col_structure, ll
         feature_cols (list): List of feature column names  
         row_dict (dict): Nested dictionary of row hierarchy
         col_dict (dict): Nested dictionary of column hierarchy
-        llm: Language model instance
         
     Returns:
         dict: Dictionary with 'row_selection' and 'col_selection' keys
     """
+    llm = get_llm_instance()
     
     print("=== DECOMPOSER AGENT ===")
     # Step 1: Decomposer Agent - Split query into row and column keywords

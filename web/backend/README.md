@@ -95,7 +95,7 @@ The backend is designed to handle multiple, isolated user conversations. Each co
 - **Request Body**:
   ```json
   {
-    "query": "your natural language question here (max 1000 chars)"
+    "query": "cho tôi biết chi phí học tập cấp 2 và cấp 1 của cả 2 học sinh"
   }
   ```
 - **Validation**:
@@ -104,8 +104,7 @@ The backend is designed to handle multiple, isolated user conversations. Each co
 - **Response Body (Success)**: A JSON object where keys are the sub-query and filename, and values are the extracted data in JSON format or a "not found" message.
   ```json
   {
-    "sales_data.xlsx - price of coffee": "[{\"Column1\": \"Value1\", ...}]",
-    "customer_data.xlsx - sales in 2023": "No matching data found."
+    "chi phi hoc tap.xlsx - chi phí học tập cấp 2 và cấp 1 của cả 2 học sinh": "[{\"Tên\": \"trần bích thu\", \"Môn\": \"tổng cộng\", \"Chi phí cấp 1\": 100, \"Chi phí cấp 2\": 200}, {\"Tên\": \"nguyễn nam\", \"Môn\": \"tổng cộng\", \"Chi phí cấp 1\": 120, \"Chi phí cấp 2\": 220}]"
   }
   ```
 
@@ -116,7 +115,7 @@ The backend is designed to handle multiple, isolated user conversations. Each co
 - **Response Body**:
   ```json
   {
-    "processed_files": ["sales_data_abc123.xlsx", "customer_data_def456.xlsx"]
+    "processed_files": ["chi phi hoc tap.xlsx"]
   }
   ```
 
@@ -128,41 +127,23 @@ The backend is designed to handle multiple, isolated user conversations. Each co
   ```json
   {
     "completely_flattened_data": {
-      "filename": "example.xlsx",
-      "has_multiindex": false,
-      "final_columns": ["Category", "Jan", "Feb", "Mar", "Total"],
-      "data_rows": [
-        ["Product A", 100, 120, 110, 330],
-        ["Product B", 80, 90, 85, 255]
-      ],
-      "feature_rows": ["Category"],
-      "feature_cols": [],
-      "row_count": 2,
-      "col_count": 5
+        "has_multiindex": false,
+        "feature_rows": ["Loại hình"],
+        "final_columns": ["Loại hình", "Tháng 01", "Tháng 02", "Cộng"],
+        "data_rows": [["Sản xuất", 100, 120, 220]]
     },
     "normal_data": {
-      "filename": "example.xlsx",
-      "has_multiindex": true,
-      "header_matrix": [
-        [
-          {"text": "Category", "colspan": 1, "rowspan": 2, "position": 0, "level": 0},
-          {"text": "2024 Q1", "colspan": 3, "rowspan": 1, "position": 1, "level": 0}
+        "has_multiindex": true,
+        "feature_rows": ["Phân loại", "Loại hình"],
+        "feature_cols": ["Thời gian", "Chỉ số"],
+        "header_matrix": [
+            [{"text": "Phân loại", "rowspan": 2}, {"text": "Loại hình", "rowspan": 2}, {"text": "Quý 1", "colspan": 2}],
+            [{"text": "Tháng 1"}, {"text": "Tháng 2"}]
         ],
-        [
-          {"text": "Jan", "colspan": 1, "rowspan": 1, "position": 1, "level": 1},
-          {"text": "Feb", "colspan": 1, "rowspan": 1, "position": 2, "level": 1},
-          {"text": "Mar", "colspan": 1, "rowspan": 1, "position": 3, "level": 1}
+        "data_rows": [
+            ["Nguyên vật liệu", "Sản xuất", 100, 120],
+            ["Thành phẩm", "Tồn kho", 50, 60]
         ]
-      ],
-      "final_columns": ["Category", "Jan", "Feb", "Mar"],
-      "data_rows": [
-        ["Product A", 100, 120, 110],
-        ["Product B", 80, 90, 85]
-      ],
-      "feature_rows": ["Category"],
-      "feature_cols": ["2024 Q1"],
-      "row_count": 2,
-      "col_count": 4
     }
   }
   ```
@@ -183,48 +164,48 @@ The backend is designed to handle multiple, isolated user conversations. Each co
   {
     "success": true,
     "plot_types": ["bar", "sunburst"],
-    "data_points_bar": 12,
-    "data_points_sunburst": 8,
+    "data_points_bar": 2,
+    "data_points_sunburst": 4,
     "plots": {
       "bar_chart": {
         "title": "Bar Chart: example.xlsx",
         "html_content": "<html>...complete interactive chart HTML...</html>",
-        "categorical_column": "Category",
-        "metrics_plotted": ["Jan", "Feb", "Mar"],
-        "filtered_columns": ["Total"]
+        "categorical_column": "Loại hình",
+        "metrics_plotted": ["Tháng 01", "Tháng 02"],
+        "filtered_columns": ["Cộng"]
       },
       "column_first": {
         "title": "example.xlsx (Column-first Hierarchy)",
         "html_content": "<html>...complete interactive chart HTML...</html>",
-        "hierarchy": ["Col_Level_0", "Col_Level_1", "Category"],
+        "hierarchy": ["Thời gian", "Chỉ số", "Phân loại", "Loại hình"],
         "priority": "column"
       },
       "row_first": {
         "title": "example.xlsx (Row-first Hierarchy)", 
         "html_content": "<html>...complete interactive chart HTML...</html>",
-        "hierarchy": ["Category", "Col_Level_0", "Col_Level_1"],
+        "hierarchy": ["Phân loại", "Loại hình", "Thời gian", "Chỉ số"],
         "priority": "row"
       }
     },
     "analysis": {
       "bar": {
-        "categorical_column": "Category",
-        "metrics_count": 3,
-        "total_value": 915.0,
-        "unique_categories": 2,
+        "categorical_column": "Loại hình",
+        "metrics_count": 2,
+        "total_value": 220.0,
+        "unique_categories": 1,
         "filtered_out_count": 1
       },
       "sunburst": {
-        "categorical_columns": ["Category"],
+        "categorical_columns": ["Phân loại", "Loại hình"],
         "hierarchy_levels": 2,
-        "total_value": 915.0,
-        "unique_categories": {"Category": 2},
-        "numeric_positions_original": 4,
-        "numeric_positions_filtered": 3,
-        "filtered_out_count": 1
+        "total_value": 330.0,
+        "unique_categories": {"Phân loại": 2, "Loại hình": 2},
+        "numeric_positions_original": 2,
+        "numeric_positions_filtered": 2,
+        "filtered_out_count": 0
       }
     },
-    "message": "Bar chart: Successfully created bar chart with 3 metrics and 2 categories; Sunburst chart: Successfully created both column-first and row-first sunburst charts with 8 data points (filtered out 1 total columns)",
+    "message": "Bar chart: Successfully created bar chart with 2 metrics and 1 categories; Sunburst chart: Successfully created both column-first and row-first sunburst charts with 4 data points",
     "error": null
   }
   ```
@@ -244,342 +225,66 @@ The backend is designed to handle multiple, isolated user conversations. Each co
   - Include interactive features (hover, zoom, drill-down)
   - Responsive design with clean, professional styling
 
-- **Example Data Formats**:
-  - **Simple Data (like 4.json)**: Use for bar charts
-    ```json
-    {
-      "has_multiindex": false,
-      "feature_rows": ["Loại hình"],
-      "final_columns": ["Loại hình", "Tháng 01", "Tháng 02", "Cộng"],
-      "data_rows": [["Sản xuất", 100, 120, 220]]
-    }
-    ```
-  - **Hierarchical Data (like 2.json)**: Use for sunburst charts
-    ```json
-    {
-      "has_multiindex": true,
-      "feature_rows": ["Phân loại", "Loại hình"],
-      "header_matrix": [...],
-      "final_columns": ["Phân loại", "Loại hình", "Tháng 01", "Tháng 02"]
-    }
-    ```
-
 ---
 
-## Error Handling
+## File-by-File Analysis and Bug Report
 
-The API now includes comprehensive error handling with proper HTTP status codes:
+This section provides a detailed analysis of each module in the `web/backend` directory, including its purpose, design, and identified issues.
 
-- **400 Bad Request**: Invalid input, file validation failures, empty queries
-- **404 Not Found**: Conversation not found
-- **413 Request Entity Too Large**: File or request too large
-- **500 Internal Server Error**: Server processing errors
+### 1. `app.py`
 
-All errors include descriptive messages and are properly logged.
+- **Purpose**: The main FastAPI application file. It defines all API endpoints, handles request validation, and orchestrates the overall workflow by calling various manager and core modules.
+- **Design**:
+    - Uses FastAPI's `async` capabilities correctly, running blocking operations in a thread pool to avoid blocking the event loop.
+    - Employs Pydantic models for robust request and response validation.
+    - Features a modular design, delegating logic to specialized components.
+    - Includes comprehensive logging, although it can be overly verbose.
+- **Identified Issues**:
+    - **[CRITICAL] Race Condition**: The `/alias/upload` endpoint is vulnerable to a race condition. If two users upload an alias file with the same name simultaneously, their operations will conflict, potentially corrupting the temporary file.
+        - **Fix**: Use a guaranteed-unique temporary filename, for example by using Python's `uuid` module.
+    - **[MEDIUM] Resource Leak**: In the `/conversations/{conversation_id}/upload` endpoint, if processing a file fails, the uploaded file is not deleted from the server. This can lead to an accumulation of orphaned files in the `uploads` directory.
+        - **Fix**: Add a `try...except` block around the file processing call and ensure the file is removed in the `except` block.
+    - **[MEDIUM] Information Leak**: Some error handlers return detailed internal exception messages to the client. This can expose sensitive information about the application's structure.
+        - **Fix**: Return generic error messages for 500-level errors and log the detailed exception server-side only.
+    - **[LOW] Verbose Logging**: The `/query` and `/plot` endpoints log extremely detailed information about data structures at the `INFO` level. This is excessive for production and clutters logs.
+        - **Fix**: Change these log statements to the `DEBUG` level.
 
----
+### 2. `managers.py`
 
-## Environment Configuration
+- **Purpose**: Manages the lifecycle of user conversations. It is responsible for creating, retrieving, and cleaning up `Conversation` objects.
+- **Design**: Uses a dictionary (`active_conversations`) to store conversation instances in memory, keyed by a UUID. It includes a `cleanup_stale_conversations` mechanism to remove inactive sessions.
+- **Identified Issues**:
+    - **[HIGH] Lack of Persistence**: The entire application state (all user sessions and their processed files) is stored in memory. A server restart will wipe all data. This is not a scalable or robust solution for a production environment.
+        - **Fix**: Replace the in-memory dictionary with a persistent storage solution like Redis for caching session data.
+    - **[LOW] Inefficient Cleanup**: The `cleanup_stale_conversations` function iterates through all conversations every time `get_conversation` is called. For a large number of active conversations, this could become a performance bottleneck.
+        - **Fix**: Run the cleanup task as a periodic background job instead of triggering it on every `get` request.
 
-Create a `.env` file in the `core/` directory with:
+### 3. `middleware.py`
 
-```env
-GOOGLE_API_KEY_1=your_google_api_key_here
-GOOGLE_API_KEY_2=your_backup_google_api_key_here
-LLM_MODEL=gemini-2.5-flash-preview-04-17
-LOG_LEVEL=INFO
-UPLOAD_FOLDER=uploads
-MAX_CONTENT_LENGTH=16777216
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-```
+- **Purpose**: Provides security and validation for incoming API requests before they hit the endpoint logic.
+- **Design**: Contains two main classes: `FileValidator` for validating uploaded files (size, type, count) and `RequestValidator` for validating other request parameters like conversation IDs and query strings.
+- **Identified Issues**:
+    - **[LOW] Hardcoded Limits**: Configuration values like `MAX_FILE_SIZE`, `MAX_FILES`, and `ALLOWED_EXTENSIONS` are hardcoded directly in the middleware file. This makes them difficult to change without modifying the code.
+        - **Fix**: Externalize these values into the central `config.py` file.
+    - **[LOW] Incomplete Filename Sanitization**: The `sanitize_filename` function is good, but could be more robust. For example, it doesn't handle path traversal attempts using backslashes (`\`). While `os.path.basename` is used later, sanitizing more aggressively at the first step is better practice.
+        - **Fix**: Improve the sanitization regex to strip or reject a wider range of malicious characters and sequences.
 
----
+### 4. `alias_manager.py`
 
-## How to Run
+- **Purpose**: Manages the global alias file for the entire application. It ensures that aliases (synonyms for column/row names) can be uploaded, updated, and used across all conversations.
+- **Design**: Implements a thread-safe singleton pattern to ensure only one instance of the manager exists. It uses a `ReentrantLock` to handle concurrent access to the alias file, preventing race conditions during read/write operations. It cleverly caches the alias data in memory.
+- **Identified Issues**:
+    - **[LOW] Minor Resource Leak**: When a new alias file is uploaded, the old file (`system_alias.xlsx`) is overwritten. However, the temporary file used during the upload is not consistently deleted, and if the old file had a different extension, it might not be cleaned up.
+        - **Fix**: Ensure old alias files with any valid Excel extension are removed and that temporary files are always cleaned up in a `finally` block.
+    - **[LOW] Brittle Startup**: The manager's state depends on a `has_system_alias_file()` function that checks for a specific filename. This is slightly brittle.
+        - **Fix**: The logic is mostly sound due to the singleton pattern, but could be made more robust by relying on the manager's internal state rather than filesystem checks after initialization.
 
-### Development Setup
+### 5. `conversation.py`
 
-1. **Navigate to the project's root directory**
-2. **Install dependencies**: 
-   ```bash
-   pip install -r web/backend/requirements.txt
-   ```
-3. **Set environment variables**: Create `.env` file as shown above
-4. **Run the application**: 
-   ```bash
-   python -m web.backend.app
-   ```
-   Or with uvicorn directly:
-   ```bash
-   uvicorn web.backend.app:app --host 127.0.0.1 --port 5001 --reload
-   ```
-5. **The server will start on**: `http://127.0.0.1:5001`
+- **Purpose**: Defines the `Conversation` class, which represents a single, isolated user session.
+- **Design**: Each `Conversation` instance encapsulates a `MultiFileProcessor` from the `core` library. This is an excellent design choice, as it effectively isolates the files, metadata, and state of one user from another. It also tracks the last access time, which is used by `managers.py` for cleanup.
+- **Identified Issues**:
+    - **[LOW] Generic Error Handling**: The `get_response` method has a broad `except Exception` block that catches any error during query processing and returns a generic failure message. While this prevents crashes, it makes debugging difficult.
+        - **Fix**: Add more specific exception handling to differentiate between different failure modes (e.g., file not found, processing error, LLM error) and provide more informative (but still safe) feedback.
 
-### Production Deployment
-
-For production, use a proper ASGI server:
-```bash
-cd web/backend
-uvicorn app:app --host 0.0.0.0 --port 5001 --workers 4
-```
-
----
-
-## Testing
-
-### Unit Tests
-```bash
-python -m pytest web/backend/test_units.py -v
-```
-
-### Integration Tests
-```bash
-python -m pytest web/backend/test_integration.py -v
-```
-
-### All Tests
-```bash
-python -m pytest web/backend/ -v
-```
-
----
-
-## 🎨 Dual-Input Plotting System ✅ COMPLETE
-
-The plotting system generates interactive charts from Excel data using an intelligent dual-input approach that automatically selects optimal chart types.
-
-### System Overview
-
-The plotting system accepts **two JSON inputs** from the frontend and intelligently generates the most appropriate visualizations:
-
-1. **`completely_flattened_data`**: Maximally flattened table data for bar chart generation
-2. **`normal_data`**: Current hierarchical table data for sunburst chart generation
-
-### Intelligent Chart Selection
-
-The backend automatically:
-- ✅ **Validates both inputs** for structural compatibility
-- ✅ **Generates bar chart** if flattened data has simple structure (single categorical column)
-- ✅ **Always generates sunburst charts** from hierarchical data
-- ✅ **Applies smart filtering** to remove Vietnamese total/summary columns ("Tổng", "Cộng")
-- ✅ **Returns user-friendly error messages** when bar chart criteria aren't met
-
-### Chart Types Generated
-
-#### 📊 **Bar Chart** (Conditional)
-- **When**: Simple flat structure with single categorical column
-- **Purpose**: Clean comparison of metrics across categories
-- **Features**: 
-  - Grouped bar chart with automatic metric labeling
-  - Intelligent column name simplification
-  - Horizontal legend layout
-  - Consistent styling with sunburst charts
-
-#### 🌅 **Column-first Sunburst** (Always)
-- **Purpose**: Time/Period hierarchy first, then categories
-- **Optimal for**: Time-series analysis and temporal patterns
-- **Features**: Radial layout showing chronological flow
-
-#### 📋 **Row-first Sunburst** (Always)  
-- **Purpose**: Categories first, then time/period hierarchy
-- **Optimal for**: Category comparison and relationship analysis
-- **Features**: Radial layout emphasizing categorical structure
-
-## Frontend Integration Guide
-
-### Using the Plotting Endpoint
-
-The plotting endpoint is designed to work seamlessly with frontend table data exports. Here's how to integrate it:
-
-#### 1. Prepare Your Data
-
-Extract data from your frontend table in two formats:
-
-**For Bar Charts (Simple Data)**:
-```javascript
-// Example: Completely flattened table data
-const flattenedData = {
-  filename: "user_table.xlsx",
-  has_multiindex: false,
-  final_columns: ["Category", "Jan", "Feb", "Mar", "Total"],
-  data_rows: [
-    ["Product A", 100, 120, 110, 330],
-    ["Product B", 80, 90, 85, 255]
-  ],
-  feature_rows: ["Category"],
-  feature_cols: [],
-  row_count: 2,
-  col_count: 5
-};
-```
-
-**For Sunburst Charts (Hierarchical Data)**:
-```javascript
-// Example: Multi-level hierarchical data
-const hierarchicalData = {
-  filename: "user_table.xlsx", 
-  has_multiindex: true,
-  header_matrix: [
-    // Multi-level header structure
-    [
-      {text: "Category", colspan: 1, rowspan: 2, position: 0, level: 0},
-      {text: "2024 Q1", colspan: 3, rowspan: 1, position: 1, level: 0}
-    ],
-    [
-      {text: "Jan", colspan: 1, rowspan: 1, position: 1, level: 1},
-      {text: "Feb", colspan: 1, rowspan: 1, position: 2, level: 1},
-      {text: "Mar", colspan: 1, rowspan: 1, position: 3, level: 1}
-    ]
-  ],
-  final_columns: ["Category", "Jan", "Feb", "Mar"],
-  data_rows: [
-    ["Product A", 100, 120, 110],
-    ["Product B", 80, 90, 85]
-  ],
-  feature_rows: ["Category"],
-  feature_cols: ["2024 Q1"]
-};
-```
-
-#### 2. Make the API Call
-
-```javascript
-async function generateCharts(flattenedData, hierarchicalData) {
-  try {
-    const response = await fetch('/plot/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        completely_flattened_data: flattenedData,
-        normal_data: hierarchicalData
-      })
-    });
-
-    const result = await response.json();
-    
-    if (result.success) {
-      console.log('Generated charts:', result.plot_types);
-      return result;
-    } else {
-      console.error('Chart generation failed:', result.error);
-    }
-  } catch (error) {
-    console.error('API call failed:', error);
-  }
-}
-```
-
-#### 3. Display the Charts
-
-```javascript
-function displayCharts(plotResult) {
-  const plots = plotResult.plots;
-  
-  // Display bar chart
-  if (plots.bar_chart) {
-    const barChartContainer = document.getElementById('bar-chart-container');
-    barChartContainer.innerHTML = plots.bar_chart.html_content;
-  }
-  
-  // Display sunburst charts
-  if (plots.column_first) {
-    const sunburstContainer = document.getElementById('sunburst-container');
-    sunburstContainer.innerHTML = plots.column_first.html_content;
-  }
-  
-  // Show analysis information
-  if (plotResult.analysis) {
-    console.log('Bar chart analysis:', plotResult.analysis.bar);
-    console.log('Sunburst analysis:', plotResult.analysis.sunburst);
-  }
-}
-```
-
-#### 4. Handle Different Scenarios
-
-```javascript
-// Example: Only one data type available
-async function generateChartsFlexible(tableData) {
-  const request = {
-    completely_flattened_data: tableData.isFlat ? tableData : null,
-    normal_data: tableData.isHierarchical ? tableData : null
-  };
-  
-  // The backend will validate and generate appropriate charts
-  const result = await generateCharts(request.completely_flattened_data, request.normal_data);
-  
-  // Handle partial success
-  if (result.plot_types.includes('bar')) {
-    console.log('Bar chart generated successfully');
-  }
-  if (result.plot_types.includes('sunburst')) {
-    console.log('Sunburst chart generated successfully');
-  }
-}
-```
-
-### Data Format Notes
-
-- **Filtering**: The system automatically removes columns containing "Tổng" or "Cộng" (Vietnamese total keywords)
-- **HTML Output**: All charts return complete HTML that can be directly inserted into DOM
-- **Responsive**: Charts are responsive and work on different screen sizes
-- **Interactive**: Charts include hover effects, zoom, and drill-down capabilities
-
-### Error Handling
-
-```javascript
-// Handle various error scenarios
-if (!result.success) {
-  if (result.error.includes('Missing required fields')) {
-    console.error('Data format error:', result.error);
-    // Show user-friendly message about data format
-  } else if (result.error.includes('No valid')) {
-    console.error('Validation error:', result.error);
-    // Show message about data requirements
-  } else {
-    console.error('Server error:', result.error);
-    // Show generic error message
-  }
-}
-```
-
----
-
-## Logging
-
-Logs are written to both console and `logs/app.log`. Log levels can be configured via the `LOG_LEVEL` environment variable.
-
-WARNING messages are prefixed with "WARNING: " for easy tracking of fallback scenarios.
-
----
-
-## API Documentation
-
-Once running, interactive API documentation is available at:
-- Swagger UI: `http://127.0.0.1:5001/docs`
-- ReDoc: `http://127.0.0.1:5001/redoc`
-
----
-
-## Security Features
-
-- **CORS**: Configurable allowed origins (no more wildcard)
-- **File Validation**: Strict file type and size checking
-- **Input Sanitization**: All inputs are validated and sanitized
-- **Filename Security**: Path traversal protection
-- **Request Limits**: Size and rate limiting
-- **Error Handling**: No sensitive information exposure
-
----
-
-## Future Improvements
-
-Items noted for later implementation:
-- Persistent conversation storage
-- Authentication and authorization
-- Rate limiting and request throttling
-- Conversation cleanup and expiration
-- Enhanced caching strategies
-- Database integration for metadata storage
+For an analysis of the `core` library modules, see the [README in the `core` directory](./core/README.md).

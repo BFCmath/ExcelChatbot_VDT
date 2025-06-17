@@ -10,6 +10,7 @@ import logging
 import os
 from langchain_core.messages import HumanMessage
 from .prompt import ALIAS_HANDLE_PROMPT
+from .llm import get_llm_instance
 
 logger = logging.getLogger(__name__)
 
@@ -124,14 +125,10 @@ class AliasEnricher:
     Handles alias enrichment for user queries using LLM.
     """
     
-    def __init__(self, llm=None):
+    def __init__(self):
         """
         Initialize the alias enricher.
-        
-        Args:
-            llm: Language model instance for query enrichment
         """
-        self.llm = llm
         self.alias_dictionary_cache = {}
         
     def load_alias_dictionary(self, file_path):
@@ -167,13 +164,13 @@ class AliasEnricher:
             str: Enriched query with alias context
             
         Raises:
-            ValueError: If LLM is not initialized or query enrichment fails
+            ValueError: If query enrichment fails
         """
-        if not self.llm:
-            raise ValueError("LLM not initialized for alias enrichment")
-        
         try:
             logger.info(f"Enriching query: {user_query}")
+            
+            # Get a new LLM instance for each call to cycle keys
+            llm = get_llm_instance()
             
             # Load alias dictionary
             alias_dictionary = self.load_alias_dictionary(alias_file_path)
@@ -186,7 +183,7 @@ class AliasEnricher:
             
             # Get LLM response
             message = HumanMessage(content=prompt)
-            response = self.llm.invoke([message])
+            response = llm.invoke([message])
             
             # Parse enriched query
             enriched_query = parse_enriched_query(response.content)
@@ -212,7 +209,7 @@ class AliasEnricher:
 default_alias_enricher = AliasEnricher()
 
 
-def enrich_query_with_aliases(user_query, alias_file_path, llm=None):
+def enrich_query_with_aliases(user_query, alias_file_path):
     """
     Convenience function to enrich a query with aliases.
     
@@ -224,11 +221,7 @@ def enrich_query_with_aliases(user_query, alias_file_path, llm=None):
     Returns:
         str: Enriched query
     """
-    if llm:
-        enricher = AliasEnricher(llm)
-    else:
-        if not default_alias_enricher.llm:
-            raise ValueError("No LLM provided and default enricher not initialized")
-        enricher = default_alias_enricher
+    llm = get_llm_instance()
+    enricher = AliasEnricher(llm)
     
     return enricher.enrich_query(user_query, alias_file_path) 

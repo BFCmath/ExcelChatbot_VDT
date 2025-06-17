@@ -212,8 +212,6 @@ def convert_df_rows_to_nested_dict(df_input, hierarchy_columns_list, undefined_l
         if isinstance(selected_data, pd.DataFrame):
             import logging
             logger = logging.getLogger(__name__)
-            logger.info(f"Selected data is DataFrame with shape: {selected_data.shape}")
-            logger.info(f"Selected data columns: {selected_data.columns.tolist()}")
             
             if selected_data.empty or len(selected_data.columns) == 0:
                 logger.warning(f"Selected DataFrame is empty or has no columns for column {col_reference}")
@@ -223,7 +221,6 @@ def convert_df_rows_to_nested_dict(df_input, hierarchy_columns_list, undefined_l
             # This error will propagate as per "để lỗi tự báo".
             try:
                 series_to_process = selected_data.iloc[:, 0]
-                logger.info(f"Extracted first column as series with shape: {series_to_process.shape}")
             except IndexError as e:
                 logger.error(f"IndexError accessing first column of DataFrame: {e}")
                 logger.error(f"DataFrame shape: {selected_data.shape}")

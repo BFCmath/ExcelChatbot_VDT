@@ -20,7 +20,7 @@ from langchain_core.tools import tool
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from .config import GOOGLE_API_KEY, LLM_MODEL
+from .config import LLM_MODEL
 
 # Configure matplotlib backend
 matplotlib.use('Agg')

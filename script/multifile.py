@@ -90,7 +90,6 @@ class MultiFileProcessor:
         self.cache_dir.mkdir(exist_ok=True)
         self.metadata_cache_file = self.cache_dir / "file_metadata.pkl"
         self.file_metadata = {}
-        self.llm = None
         self._load_cache()
     
     def _load_cache(self):
@@ -117,18 +116,6 @@ class MultiFileProcessor:
             print(f"Saved cache for {len(self.file_metadata)} files")
         except Exception as e:
             print(f"Error saving cache: {e}")
-    
-    def initialize_llm(self):
-        """Initialize the LLM model."""
-        if not self.llm:
-            self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash-preview-04-17",
-                google_api_key=os.getenv("GOOGLE_API_KEY_1"),
-                temperature=0,
-                max_tokens=None,
-                timeout=None,
-                max_retries=2,
-            )
     
     def is_file_cached_and_valid(self, file_path):
         """Check if file is cached and cache is still valid."""
@@ -271,9 +258,9 @@ class MultiFileProcessor:
         )
         
         try:
-            self.initialize_llm()
+            llm = get_llm_instance()
             message = HumanMessage(content=separator_prompt)
-            response = self.llm.invoke([message])
+            response = llm.invoke([message])
             return self.parse_separator_response(response.content)
         except Exception as e:
             print(f"Error separating query: {e}")

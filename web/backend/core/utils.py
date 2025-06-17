@@ -8,7 +8,7 @@ def read_file(excel_file_path, show=False):
         df = pd.read_excel(excel_file_path)
     except Exception as e:
         print(f"Error reading Excel file: {e}")
-        exit(1)
+        raise Exception(f"Error reading Excel file: {e}")
     excel_content = df.to_csv(index=False)
     if show:
         # beautiful print for the context (in table format)

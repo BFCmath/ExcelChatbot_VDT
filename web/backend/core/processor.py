@@ -15,12 +15,11 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 import dotenv
 
 from .preprocess import clean_unnamed_header, fill_undefined_sequentially, forward_fill_column_nans, extract_headers_only
-from .llm import splitter, get_feature_names, get_feature_names_from_headers
+from .llm import splitter, get_feature_names, get_feature_names_from_headers, get_llm_instance
 from .extract_df import render_filtered_dataframe
 from .postprocess import TablePostProcessor
 from .utils import get_feature_name_content, format_row_dict_for_llm, format_col_dict_for_llm
@@ -59,30 +58,12 @@ class MultiFileProcessor:
     
     def __init__(self):
         self.file_metadata = {}
-        self.llm = None
         self.post_processor = TablePostProcessor()
+        # AliasEnricher will get its LLM instance on-demand
         self.alias_enricher = AliasEnricher()
-    
-    def initialize_llm(self):
-        """Initialize LLM if not already done."""
-        if self.llm is None:
-            api_key = os.getenv('GOOGLE_API_KEY_1')
-            if not api_key:
-                raise ValueError("GOOGLE_API_KEY environment variable is required")
-            
-            self.llm = ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash",
-                google_api_key=api_key,
-                temperature=0.0
-            )
-            # Initialize alias enricher with LLM
-            self.alias_enricher.llm = self.llm
     
     def extract_file_metadata(self, file_path, original_filename=None):
         """Extract and store metadata for a single file."""
-        # Initialize LLM if needed
-        self.initialize_llm()
-        
         metadata = FileMetadata(file_path, original_filename)
         
         try:
@@ -100,7 +81,7 @@ class MultiFileProcessor:
             
             # Extract feature names from headers only
             logger.info(f"Step 3: Extracting feature names from headers for {file_path}")
-            metadata.feature_names = get_feature_names_from_headers(headers_content, self.llm)
+            metadata.feature_names = get_feature_names_from_headers(headers_content)
             logger.info(f"Feature names extracted: {metadata.feature_names}")
             
             # Get feature name content
@@ -144,6 +125,7 @@ class MultiFileProcessor:
 
     def generate_file_summary(self, metadata):
         """Generate LLM summary for a file's metadata."""
+        llm = get_llm_instance()
         summary_prompt = FILE_SUMMARY_PROMPT.format(
             filename=metadata.original_filename,
             feature_rows=metadata.feature_name_result['feature_rows'],
@@ -153,7 +135,7 @@ class MultiFileProcessor:
         )
         
         message = HumanMessage(content=summary_prompt)
-        response = self.llm.invoke([message])
+        response = llm.invoke([message])
         summary = response.content.strip()
         return summary
     
@@ -180,7 +162,7 @@ class MultiFileProcessor:
 
     def separate_query(self, query):
         """Use LLM to separate a query based on file summaries."""
-        self.initialize_llm()
+        llm = get_llm_instance()
         files_context = self.get_all_file_summaries()
 
         separator_prompt = QUERY_SEPARATOR_PROMPT.format(
@@ -189,7 +171,7 @@ class MultiFileProcessor:
         )
         
         message = HumanMessage(content=separator_prompt)
-        response = self.llm.invoke([message])
+        response = llm.invoke([message])
         return self.parse_separator_response(response.content)
 
     def parse_separator_response(self, response):
@@ -240,6 +222,7 @@ class MultiFileProcessor:
         # Step 1: Enrich query with aliases if alias file is provided
         enriched_query = query
         if alias_file_path:
+            # The AliasEnricher will now get its own LLM instance internally
             try:
                 logger.info(f"🔍 Enriching query with aliases from {alias_file_path}")
                 enriched_query = self.alias_enricher.enrich_query(query, alias_file_path)
@@ -252,6 +235,7 @@ class MultiFileProcessor:
         # Step 2: Separate query (using enriched query)
         assignments = self.separate_query(enriched_query)
         if not assignments:
+            logger.warning("Query separator did not assign the query to any file.")
             return {
                 "success": False,
                 "error": "Could not determine which file to query.",
@@ -269,30 +253,12 @@ class MultiFileProcessor:
             df_result = self.process_single_file_query(assignment)
             # Return the DataFrame as-is to preserve hierarchical structure
             if df_result is not None and not df_result.empty:
-                # Use post-processor to get both normal and flattened table structures
-                logger.info(f"🔄 DataFrame result shape: {df_result.shape}")
-                logger.info(f"🔄 DataFrame columns: {df_result.columns}")
-                logger.info(f"🔄 DataFrame has MultiIndex: {isinstance(df_result.columns, pd.MultiIndex)}")
-                
                 table_structures = self.post_processor.extract_hierarchical_table_info(df_result)
+                # if 'normal_table' in table_structures:
+                #     normal_table = table_structures["normal_table"]
                 
-                logger.info(f"📊 Table structures keys: {list(table_structures.keys())}")
-                logger.info(f"📊 Normal table keys: {list(table_structures['normal_table'].keys()) if 'normal_table' in table_structures else 'MISSING'}")
-                logger.info(f"📊 Flattened table keys: {list(table_structures['flattened_table'].keys()) if 'flattened_table' in table_structures else 'MISSING'}")
-                
-                if 'normal_table' in table_structures:
-                    normal_table = table_structures["normal_table"]
-                    logger.info(f"📋 Normal table final_columns: {normal_table.get('final_columns', 'MISSING')}")
-                    logger.info(f"📋 Normal table row_count: {normal_table.get('row_count', 'MISSING')}")
-                    logger.info(f"📋 Normal table has_multiindex: {normal_table.get('has_multiindex', 'MISSING')}")
-                
-                if 'flattened_table' in table_structures:
-                    flattened_table = table_structures["flattened_table"]
-                    logger.info(f"🔧 Flattened table final_columns: {flattened_table.get('final_columns', 'MISSING')}")
-                    logger.info(f"🔧 Flattened table row_count: {flattened_table.get('row_count', 'MISSING')}")
-                    logger.info(f"🔧 Flattened table has_multiindex: {flattened_table.get('has_multiindex', 'MISSING')}")
-                else:
-                    logger.error("❌ FLATTENED TABLE IS MISSING FROM TABLE_STRUCTURES!")
+                # if 'flattened_table' in table_structures:
+                #     flattened_table = table_structures["flattened_table"]
                 
                 result_entry = {
                     "filename": self.file_metadata[file_path].original_filename,
@@ -303,13 +269,7 @@ class MultiFileProcessor:
                     "feature_rows": self.file_metadata[file_path].feature_name_result["feature_rows"],  # Add feature rows info
                     "feature_cols": self.file_metadata[file_path].feature_name_result["feature_cols"]   # Add feature cols info
                 }
-                
-                logger.info(f"✅ Result entry keys: {list(result_entry.keys())}")
-                logger.info(f"✅ Result entry has flattened_table_info: {'flattened_table_info' in result_entry}")
-                if 'flattened_table_info' in result_entry and result_entry['flattened_table_info']:
-                    logger.info(f"✅ Flattened table info final_columns: {result_entry['flattened_table_info'].get('final_columns', 'MISSING')}")
-                else:
-                    logger.error("❌ RESULT ENTRY MISSING FLATTENED TABLE INFO!")
+
             else:
                 result_entry = {
                     "filename": self.file_metadata[file_path].original_filename,
@@ -330,15 +290,7 @@ class MultiFileProcessor:
         }
 
     def process_single_file_query(self, assignment):
-        """
-        Processes a single file query assignment from the separator.
-        
-        Args:
-            assignment (dict): A dictionary with 'file_path' and 'query'.
-            
-        Returns:
-            DataFrame: The filtered DataFrame result, or None.
-        """
+        """Process a single sub-query for a specific file."""
         file_path = assignment['file_path']
         query = assignment['query']
         
@@ -348,7 +300,6 @@ class MultiFileProcessor:
             return None
             
         # Ensure LLM is initialized
-        self.initialize_llm()
         
         logger.info("Using splitter agent to process query")
         # Use the splitter agent to process the query
@@ -358,7 +309,6 @@ class MultiFileProcessor:
             feature_cols=metadata.feature_name_result['feature_cols'],
             row_structure=metadata.row_structure,
             col_structure=metadata.col_structure,
-            llm=self.llm
         )
         
         # Render the filtered DataFrame
