@@ -210,6 +210,9 @@
                     <div class="plot-chart-options">
                         <div class="plot-tabs">
                             <div class="plot-tab-group">
+                                <button class="plot-tab" data-chart="bar">
+                                    <i class="fas fa-chart-bar"></i> Bar Chart
+                                </button>
                                 <button class="plot-tab active" data-chart="column">
                                     <i class="fas fa-clock"></i> Time First
                                 </button>
@@ -229,6 +232,15 @@
                         
                         <!-- Chart Previews -->
                         <div class="plot-chart-container">
+                            <div id="plot-chart-bar" class="plot-chart">
+                                <div class="plot-chart-preview" id="plot-preview-bar">
+                                    <div class="plot-preview-placeholder">
+                                        <i class="fas fa-chart-bar"></i>
+                                        <p>Click Preview to see bar chart</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div id="plot-chart-column" class="plot-chart active">
                                 <div class="plot-chart-preview" id="plot-preview-column">
                                     <div class="plot-preview-placeholder">

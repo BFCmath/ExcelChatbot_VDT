@@ -246,7 +246,7 @@ function formatQueryResults(response) {
                     html += `<i class="fas fa-download"></i>`;
                     html += `<span class="download-label">Download</span>`;
                     html += `</button>`;
-                    html += `<button class="plot-table-btn" data-result-index="${resultIndex}" title="Generate Sunburst Charts">`;
+                    html += `<button class="plot-table-btn" data-result-index="${resultIndex}" title="Generate Charts">`;
                     html += `<i class="fas fa-chart-pie"></i>`;
                     html += `<span class="plot-label">Plot</span>`;
                     html += `</button>`;
@@ -274,7 +274,8 @@ function formatQueryResults(response) {
                     html += `</div>`;
                 } else {
                     // Regular table without hierarchy - still add NaN row controls
-                    html += `<div class="table-simple-container" data-result-index="${resultIndex}">`;
+                    // For simple tables, max levels is 1 (only the current level, no flattening needed)
+                    html += `<div class="table-simple-container" data-result-index="${resultIndex}" data-max-levels="1">`;
                     html += `<div class="table-controls">`;
                     html += `<div class="table-filter-controls">`;
                     html += `<div class="table-download-controls">`;

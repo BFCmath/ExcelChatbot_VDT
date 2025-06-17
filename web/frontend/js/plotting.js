@@ -15,18 +15,18 @@ window.PlottingManager = {
     // Initialize plotting for a specific table
     async initializePlotting(resultIndex) {
         try {
-            console.log(`🎨 [PLOT] Initializing plotting for result ${resultIndex}`);
+            console.log(`🎨 [PLOT] Initializing dual-input plotting for result ${resultIndex}`);
             
-            // Use EXACT same logic as downloadTableData() - no custom extraction
-            const tableData = this.getProcessedTableData(resultIndex);
-            if (!tableData) {
+            // Get dual table data (current + most flattened)
+            const dualData = this.getDualProcessedTableData(resultIndex);
+            if (!dualData) {
                 showError('Unable to extract table data for plotting');
                 return;
             }
             
             // Show modal and start plotting
             this.showPlotModal();
-            await this.sendPlotRequest(tableData, resultIndex);
+            await this.sendDualPlotRequest(dualData, resultIndex);
             
         } catch (error) {
             console.error('Error initializing plotting:', error);
@@ -34,109 +34,49 @@ window.PlottingManager = {
         }
     },
     
-    // Get processed table data using EXACT same logic as downloadTableData()
-    getProcessedTableData(resultIndex) {
+    // Get dual processed table data for new backend endpoint
+    getDualProcessedTableData(resultIndex) {
         try {
-            console.log(`📊 [PLOT] Getting processed table data for result index: ${resultIndex}`);
+            console.log(`📊 [PLOT] Getting dual processed table data for result index: ${resultIndex}`);
             
-            // STEP 1: Get original table data (same as downloadTableData)
+            // STEP 1: Get original table data
             const tableData = window.FlattenManager.getTableDataFromResult(resultIndex);
             if (!tableData) {
                 console.error('No table data found for result index:', resultIndex);
                 return null;
             }
             
-            // STEP 2: Find SPECIFIC container for this exact resultIndex (same fix as downloadAsJSON)
-            const specificContainerSelector = `div[data-result-index="${resultIndex}"]`;
-            const allContainers = document.querySelectorAll(specificContainerSelector);
-            
-            console.log(`🔍 [PLOT CONTAINER] Looking for result index ${resultIndex}:`);
-            console.log(`  - Found ${allContainers.length} elements with data-result-index="${resultIndex}"`);
-            
-            // Find the VISIBLE/ACTIVE main container (same logic as downloadAsJSON)
-            let container = null;
-            
-            // CRITICAL: Filter out detached/invisible elements first  
-            const visibleContainers = Array.from(allContainers).filter(elem => {
-                // Check if element is attached to DOM and visible
-                const isAttached = document.contains(elem);
-                const isVisible = elem.offsetParent !== null || elem.style.display !== 'none';
-                
-                console.log(`    ${elem.tagName}.${elem.className}: attached=${isAttached}, visible=${isVisible}`);
-                return isAttached && isVisible;
-            });
-            
-            console.log(`    🔍 [PLOT] Filtered to ${visibleContainers.length} visible containers from ${allContainers.length} total`);
-            
-            for (const elem of visibleContainers) {
-                const hasTableControls = elem.querySelector('.table-controls') !== null;
-                const hasFlattening = elem.classList.contains('table-flatten-container');
-                const isSimple = elem.classList.contains('table-simple-container');
-                
-                // For hierarchical tables, check button states to find the ACTIVE container
-                let isActiveContainer = false;
-                if (hasFlattening) {
-                    const upBtn = elem.querySelector('.flatten-up');
-                    const downBtn = elem.querySelector('.flatten-down');
-                    const levelDisplay = elem.querySelector('.flatten-level-display');
-                    
-                    // Active container has functional buttons and valid level
-                    const hasValidButtons = upBtn && downBtn && levelDisplay;
-                    const levelAttr = levelDisplay?.getAttribute('data-current-level');
-                    
-                    console.log(`    ${elem.tagName}.${elem.className}: controls=${hasTableControls}, buttons=${hasValidButtons}, level=${levelAttr}`);
-                    
-                    if (hasValidButtons && levelAttr !== null) {
-                        isActiveContainer = true;
-                    }
-                } else {
-                    console.log(`    ${elem.tagName}.${elem.className}: controls=${hasTableControls}, simple=${isSimple}`);
-                    isActiveContainer = hasTableControls || isSimple;
-                }
-                
-                if (isActiveContainer) {
-                    container = elem;
-                    console.log(`    ✅ Selected as VISIBLE ACTIVE main container for plotting`);
-                    break;
-                }
-            }
-            
+            // STEP 2: Find container and determine max flatten level
+            const container = this.findActiveContainer(resultIndex);
             if (!container) {
                 console.error('❌ [PLOT] No main container found for result index:', resultIndex);
                 return null;
             }
             
-            // STEP 3: Apply processing (EXACT same as downloadTableData)
-            let currentTableData = { ...tableData };
+            console.log(`🔍 [PLOT] CONTAINER DEBUG:`);
+            console.log(`  - Container found:`, container);
+            console.log(`  - Container class:`, container.className);
+            console.log(`  - Container data-max-levels:`, container.getAttribute('data-max-levels'));
+            console.log(`  - Container data-result-index:`, container.getAttribute('data-result-index'));
             
-            // Apply current flatten level from THIS specific container only
-            const levelDisplay = container.querySelector('.flatten-level-display');
-            const currentLevel = levelDisplay ? parseInt(levelDisplay.getAttribute('data-current-level')) || 0 : 0;
+            // STEP 3: Prepare CURRENT table data (for sunburst)
+            const currentTableData = this.getCurrentTableData(tableData, container);
             
-            console.log(`🔍 [PLOT LEVEL] For result ${resultIndex}: level=${currentLevel}`);
+            // STEP 4: Prepare MOST FLATTENED table data (for bar chart)
+            const mostFlattenedResult = this.getMostFlattenedData(tableData, container);
             
-            if (currentLevel > 0 && levelDisplay) {
-                currentTableData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
-                console.log(`🔄 [PLOT] Applied flatten level ${currentLevel}`);
-            }
+            console.log(`✅ [PLOT] Prepared dual table data successfully`);
+            console.log(`🔍 [PLOT] DUAL DATA SUMMARY:`);
+            console.log(`  - Current data flatten_level_applied: ${currentTableData?.flatten_level_applied || 'N/A'}`);
+            console.log(`  - Flattened data flatten_level_applied: ${mostFlattenedResult.data?.flatten_level_applied || 'N/A'}`);
+            console.log(`  - Flattened level to pass to schema: ${mostFlattenedResult.flattenLevel}`);
+            console.log(`  - Expected: This should be maxLevel for completely flattened bar chart data`);
             
-            // Apply current filters
-            const featureColCheckbox = container.querySelector('.feature-col-checkbox');
-            const showAllFeatureCols = featureColCheckbox ? featureColCheckbox.checked : false;
-            
-            if (!showAllFeatureCols) {
-                currentTableData = window.FlattenManager.filterTableDataByRedundantColumns(currentTableData, true);
-            }
-            
-            const nanRowCheckbox = container.querySelector('.nan-row-checkbox');
-            const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : false;
-            
-            if (!showNaNRows) {
-                currentTableData = window.FlattenManager.filterTableDataByNaNRows(currentTableData, true);
-            }
-            
-            console.log(`✅ [PLOT] Processed table data successfully`);
-            return currentTableData;
+            return {
+                currentData: currentTableData,
+                flattenedData: mostFlattenedResult.data,
+                flattenedLevel: mostFlattenedResult.flattenLevel
+            };
             
         } catch (error) {
             console.error('Error getting processed table data:', error);
@@ -144,8 +84,132 @@ window.PlottingManager = {
         }
     },
     
+    // Find the active container for the given result index
+    findActiveContainer(resultIndex) {
+        const specificContainerSelector = `div[data-result-index="${resultIndex}"]`;
+        const allContainers = document.querySelectorAll(specificContainerSelector);
+        
+        console.log(`🔍 [PLOT CONTAINER] Looking for result index ${resultIndex}:`);
+        console.log(`  - Found ${allContainers.length} elements with data-result-index="${resultIndex}"`);
+        
+        // Filter out detached/invisible elements first  
+        const visibleContainers = Array.from(allContainers).filter(elem => {
+            const isAttached = document.contains(elem);
+            const isVisible = elem.offsetParent !== null || elem.style.display !== 'none';
+            return isAttached && isVisible;
+        });
+        
+        // Find the active container
+        for (const elem of visibleContainers) {
+            const hasTableControls = elem.querySelector('.table-controls') !== null;
+            const hasFlattening = elem.classList.contains('table-flatten-container');
+            const isSimple = elem.classList.contains('table-simple-container');
+            
+            let isActiveContainer = false;
+            if (hasFlattening) {
+                const upBtn = elem.querySelector('.flatten-up');
+                const downBtn = elem.querySelector('.flatten-down');
+                const levelDisplay = elem.querySelector('.flatten-level-display');
+                
+                if (upBtn && downBtn && levelDisplay && levelDisplay.getAttribute('data-current-level') !== null) {
+                    isActiveContainer = true;
+                }
+            } else {
+                isActiveContainer = hasTableControls || isSimple;
+            }
+            
+            if (isActiveContainer) {
+                console.log(`    ✅ Selected as VISIBLE ACTIVE main container for plotting`);
+                return elem;
+            }
+        }
+        
+        return null;
+    },
+    
+    // Get current table data (whatever is currently displayed)
+    getCurrentTableData(tableData, container) {
+        let currentTableData = { ...tableData };
+        
+        // Apply current flatten level
+        const levelDisplay = container.querySelector('.flatten-level-display');
+        const currentLevel = levelDisplay ? parseInt(levelDisplay.getAttribute('data-current-level')) || 0 : 0;
+        
+        console.log(`🔍 [CURRENT DATA] Current level: ${currentLevel}`);
+        
+        if (currentLevel > 0 && levelDisplay) {
+            currentTableData = window.FlattenManager.createFlattenedTableData(tableData, currentLevel);
+        }
+        
+        // Apply current filters
+        const featureColCheckbox = container.querySelector('.feature-col-checkbox');
+        const showAllFeatureCols = featureColCheckbox ? featureColCheckbox.checked : false;
+        
+        if (!showAllFeatureCols) {
+            currentTableData = window.FlattenManager.filterTableDataByRedundantColumns(currentTableData, true);
+        }
+        
+        const nanRowCheckbox = container.querySelector('.nan-row-checkbox');
+        const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : false;
+        
+        if (!showNaNRows) {
+            currentTableData = window.FlattenManager.filterTableDataByNaNRows(currentTableData, true);
+        }
+        
+        return currentTableData;
+    },
+    
+    // Get most flattened data (for bar chart)
+    getMostFlattenedData(tableData, container) {
+        // Find the maximum flatten level available
+        const maxLevels = parseInt(container.getAttribute('data-max-levels')) || 0;
+        
+        // For hierarchical tables: use the maximum flatten level (fully flattened)
+        // For simple tables: maxLevels = 1, so maxFlattenLevel = 1 (but should be 0)
+        let maxFlattenLevel = maxLevels; // do not change this line
+        
+        console.log(`🔍 [FLATTENED DATA] DETAILED DEBUG:`);
+        console.log(`  - Container element:`, container);
+        console.log(`  - Container class:`, container.className);
+        console.log(`  - Container data-max-levels attribute:`, container.getAttribute('data-max-levels'));
+        console.log(`  - Parsed maxLevels: ${maxLevels}`);
+        console.log(`  - Calculated maxFlattenLevel: ${maxFlattenLevel}`);
+        console.log(`  - Logic: ${container.classList.contains('table-simple-container') ? 'Simple table, level=0' : `Hierarchical table, level=${maxLevels}-1=${maxFlattenLevel}`}`);
+        
+        // Use FlattenManager to create the completely flattened version
+        let mostFlattenedData;
+        if (maxFlattenLevel === 0) {
+            // For simple tables or level 0, just use the original data
+            mostFlattenedData = { ...tableData };
+        } else {
+            // Use existing flatten logic from flatten.js
+            mostFlattenedData = window.FlattenManager.createFlattenedTableData(tableData, maxFlattenLevel);
+        }
+        
+        // Apply same filters as current table for consistency
+        const featureColCheckbox = container.querySelector('.feature-col-checkbox');
+        const showAllFeatureCols = featureColCheckbox ? featureColCheckbox.checked : false;
+        
+        if (!showAllFeatureCols) {
+            mostFlattenedData = window.FlattenManager.filterTableDataByRedundantColumns(mostFlattenedData, true);
+        }
+        
+        const nanRowCheckbox = container.querySelector('.nan-row-checkbox');
+        const showNaNRows = nanRowCheckbox ? nanRowCheckbox.checked : false;
+        
+        if (!showNaNRows) {
+            mostFlattenedData = window.FlattenManager.filterTableDataByNaNRows(mostFlattenedData, true);
+        }
+        
+        // Return both data and the flatten level that was applied
+        return {
+            data: mostFlattenedData,
+            flattenLevel: maxFlattenLevel
+        };
+    },
+    
     // Create plot data schema using EXACT same logic as downloadAsJSON()
-    createPlotDataSchema(tableData, resultIndex) {
+    createPlotDataSchema(tableData, resultIndex, overrideFlattenLevel = null) {
         try {
             // Get the original backend data (same as downloadAsJSON)
             const originalTableData = window.FlattenManager.getTableDataFromResult(resultIndex);
@@ -155,6 +219,9 @@ window.PlottingManager = {
             const levelDisplay = container?.querySelector('.flatten-level-display');
             const currentFlattenLevel = levelDisplay ? parseInt(levelDisplay.getAttribute('data-current-level')) || 0 : 0;
             
+            // Use override flatten level if provided (for flattened data), otherwise use current level
+            const actualFlattenLevel = overrideFlattenLevel !== null ? overrideFlattenLevel : currentFlattenLevel;
+            
             // Get current feature_rows (same as downloadAsJSON)
             const currentFeatureRows = tableData.feature_rows || [];
             
@@ -162,6 +229,7 @@ window.PlottingManager = {
             const currentFeatureCols = window.TableManager.identifyCurrentFeatureCols(tableData, originalTableData, currentFeatureRows);
             
             console.log(`🔍 [PLOT] Feature cols calculation result: [${currentFeatureCols.join(', ')}]`);
+            console.log(`🔍 [PLOT] Using flatten level: ${actualFlattenLevel} (override: ${overrideFlattenLevel}, current: ${currentFlattenLevel})`);
             
             // Create plotting data structure (EXACT same as downloadAsJSON)
             // BUT ensure all numbers are plain JavaScript numbers (not numpy types)
@@ -179,7 +247,7 @@ window.PlottingManager = {
                 feature_cols: currentFeatureCols,             // Data columns in flattened table
                 
                 export_timestamp: new Date().toISOString(),
-                flatten_level_applied: currentFlattenLevel,
+                flatten_level_applied: actualFlattenLevel,    // Use the actual flatten level applied
                 filters_applied: {
                     nan_rows_hidden: Number(tableData.nan_rows_hidden || 0),
                     redundant_columns_hidden: Number(tableData.redundant_columns_hidden || 0)
@@ -248,91 +316,66 @@ window.PlottingManager = {
     },
     
     // Send plot request to backend
-    async sendPlotRequest(processedTableData, resultIndex) {
+    async sendDualPlotRequest(dualData, resultIndex) {
         try {
             this.updateModalState('loading');
             
-            console.log(`📤 [PLOT] Sending plot request to backend`);
+            console.log(`📤 [PLOT] Sending dual plot request to backend`);
+            console.log(`📤 [PLOT] FUNCTION PARAMETER CHECK:`);
+            console.log(`  - dualData.flattenedLevel: ${dualData.flattenedLevel}`);
+            console.log(`  - typeof dualData.flattenedLevel: ${typeof dualData.flattenedLevel}`);
+            console.log(`  - dualData.flattenedLevel === null: ${dualData.flattenedLevel === null}`);
+            console.log(`  - dualData.flattenedLevel === undefined: ${dualData.flattenedLevel === undefined}`);
             
-            // Create plot data schema using EXACT same logic as downloadAsJSON
-            const plotDataSchema = this.createPlotDataSchema(processedTableData, resultIndex);
-            if (!plotDataSchema) {
-                throw new Error('Failed to create plot data schema');
+            // Create both plot data structures
+            const currentPlotSchema = this.createPlotDataSchema(dualData.currentData, resultIndex);
+            console.log(`📤 [PLOT] About to call createPlotDataSchema for flattened data with override level: ${dualData.flattenedLevel}`);
+            const flattenedPlotSchema = this.createPlotDataSchema(dualData.flattenedData, resultIndex, dualData.flattenedLevel);
+            
+            if (!currentPlotSchema || !flattenedPlotSchema) {
+                throw new Error('Failed to create plot data schemas');
             }
             
-            console.log(`📤 [PLOT] Request payload summary:`, {
-                has_table_data: !!plotDataSchema,
-                table_data_keys: plotDataSchema ? Object.keys(plotDataSchema) : 'null',
-                final_columns_count: plotDataSchema?.final_columns?.length || 'missing',
-                data_rows_count: plotDataSchema?.data_rows?.length || 'missing',
-                data_row_sample_length: plotDataSchema?.data_rows?.[0]?.length || 'missing',
-                feature_rows: plotDataSchema?.feature_rows || 'missing',
-                feature_cols: plotDataSchema?.feature_cols || 'missing',
-                row_count: plotDataSchema?.row_count || 'missing',
-                col_count: plotDataSchema?.col_count || 'missing'
+            console.log(`📤 [PLOT] Dual plot request summary:`, {
+                current_data_rows: currentPlotSchema?.data_rows?.length || 'missing',
+                current_columns: currentPlotSchema?.final_columns?.length || 'missing',
+                flattened_data_rows: flattenedPlotSchema?.data_rows?.length || 'missing',
+                flattened_columns: flattenedPlotSchema?.final_columns?.length || 'missing',
+                current_flatten_level: currentPlotSchema?.flatten_level_applied || 'missing',
+                flattened_flatten_level: flattenedPlotSchema?.flatten_level_applied || 'missing'
             });
             
-            // CRITICAL DEBUG: Log the exact JSON being sent
-            const requestPayload = {table_data: plotDataSchema};
-            console.log(`📤 [PLOT] EXACT REQUEST PAYLOAD:`, requestPayload);
-            console.log(`📤 [PLOT] REQUEST JSON STRING:`, JSON.stringify(requestPayload, null, 2));
+            console.log(`🎯 [PLOT] CRITICAL BAR CHART FLATTEN LEVEL CHECK:`);
+            console.log(`  - Flattened data flatten_level_applied: ${flattenedPlotSchema?.flatten_level_applied}`);
+            console.log(`  - Current data flatten_level_applied: ${currentPlotSchema?.flatten_level_applied}`);
             
-            // 🔍 ENHANCED DEBUG FOR HEADER MATRIX ISSUE
-            console.log(`📤 [PLOT] DETAILED HEADER MATRIX ANALYSIS:`);
-            console.log(`  - header_matrix exists: ${!!plotDataSchema.header_matrix}`);
-            console.log(`  - header_matrix length: ${plotDataSchema.header_matrix?.length || 'undefined'}`);
-            console.log(`  - header_matrix type: ${typeof plotDataSchema.header_matrix}`);
-            
-            if (plotDataSchema.header_matrix && plotDataSchema.header_matrix.length > 0) {
-                console.log(`  - header_matrix[0] exists: ${!!plotDataSchema.header_matrix[0]}`);
-                console.log(`  - header_matrix[0] length: ${plotDataSchema.header_matrix[0]?.length || 'undefined'}`);
-                console.log(`  - header_matrix[0] type: ${typeof plotDataSchema.header_matrix[0]}`);
-                
-                if (plotDataSchema.header_matrix[0] && plotDataSchema.header_matrix[0].length > 0) {
-                    console.log(`  - header_matrix[0][0] sample:`, plotDataSchema.header_matrix[0][0]);
-                    console.log(`  - header_matrix[0] all headers:`, plotDataSchema.header_matrix[0].map(h => ({
-                        text: h.text,
-                        colspan: h.colspan,
-                        rowspan: h.rowspan,
-                        position: h.position
-                    })));
-                }
+            // Determine table type from dualData context
+            const isSimpleTable = dualData.flattenedLevel === 0 && dualData.currentData?.flatten_level_applied === 0;
+            if (isSimpleTable) {
+                console.log(`  - ✅ SIMPLE TABLE: Both levels = 0 (correct for non-hierarchical data)`);
+                console.log(`  - For simple tables: completely_flattened_data = normal_data (same flatten level)`);
             } else {
-                console.log(`  - ❌ PROBLEM: header_matrix is empty or undefined!`);
+                console.log(`  - ✅ HIERARCHICAL TABLE: Flattened level should be (maxLevels - 1)`);
+                console.log(`  - Current level is user's view, flattened level is completely flattened for bar chart`);
             }
             
-            console.log(`📤 [PLOT] HEADER MATRIX STRUCTURE:`, JSON.stringify(plotDataSchema.header_matrix, null, 2));
-            console.log(`📤 [PLOT] TABLE METADATA:`);
-            console.log(`  - has_multiindex: ${plotDataSchema.has_multiindex}`);
-            console.log(`  - final_columns: [${plotDataSchema.final_columns?.join(', ') || 'undefined'}]`);
-            console.log(`  - final_columns count: ${plotDataSchema.final_columns?.length || 0}`);
-            console.log(`  - data_rows count: ${plotDataSchema.data_rows?.length || 0}`);
-            console.log(`  - data_row[0] length: ${plotDataSchema.data_rows?.[0]?.length || 0}`);
-            console.log(`  - feature_rows: [${plotDataSchema.feature_rows?.join(', ') || 'undefined'}]`);
-            console.log(`  - feature_cols: [${plotDataSchema.feature_cols?.join(', ') || 'undefined'}]`);
-            console.log(`  - flatten_level_applied: ${plotDataSchema.flatten_level_applied}`);
+            // Create dual request payload
+            const requestPayload = {
+                completely_flattened_data: flattenedPlotSchema,
+                normal_data: currentPlotSchema
+            };
+            console.log(`📤 [PLOT] EXACT REQUEST PAYLOAD:`, requestPayload);
             
             // Validate critical fields before sending
-            if (!plotDataSchema.final_columns || !plotDataSchema.data_rows) {
-                throw new Error('Missing required fields: final_columns or data_rows');
+            if (!currentPlotSchema.final_columns || !currentPlotSchema.data_rows) {
+                throw new Error('Missing required fields in current data: final_columns or data_rows');
             }
             
-            if (plotDataSchema.data_rows.length === 0) {
-                throw new Error('No data rows to plot');
+            if (!flattenedPlotSchema.final_columns || !flattenedPlotSchema.data_rows) {
+                throw new Error('Missing required fields in flattened data: final_columns or data_rows');
             }
             
-            if (plotDataSchema.final_columns.length === 0) {
-                throw new Error('No columns defined');
-            }
-            
-            // Log data consistency check
-            const dataRowLength = plotDataSchema.data_rows[0]?.length || 0;
-            const colCount = plotDataSchema.col_count || 0;
-            console.log(`🔍 [PLOT] Data consistency check:`);
-            console.log(`  - data_rows[0].length: ${dataRowLength}`);
-            console.log(`  - col_count: ${colCount}`);
-            console.log(`  - final_columns.length: ${plotDataSchema.final_columns.length}`);
-            console.log(`  - Consistency: ${dataRowLength === colCount ? '✅ GOOD' : '❌ MISMATCH'}`);
+            console.log(`🔍 [PLOT] Data validation passed - sending request to backend`);
             
             const response = await fetch(`${window.AppConfig.API_BASE_URL}/plot/generate`, {
                 method: 'POST',
@@ -358,16 +401,28 @@ window.PlottingManager = {
             }
             
             const result = await response.json();
-            console.log(`📥 [PLOT] Received plot response:`, {
+            console.log(`📥 [PLOT] Received dual plot response:`, {
                 success: result.success,
-                plot_type: result.plot_type,
-                data_points: result.data_points,
-                has_plots: !!(result.plots?.column_first && result.plots?.row_first)
+                plot_types: result.plot_types,
+                bar_chart_message: result.bar_chart_message,
+                has_sunburst_plots: !!(result.plots?.column_first && result.plots?.row_first),
+                has_bar_plot: !!result.plots?.bar_chart,
+                response_keys: Object.keys(result)
             });
             
             if (result.success) {
+                // Check if bar chart was generated
+                const hasBarChart = result.plot_types && result.plot_types.includes('bar');
+                
+                if (!hasBarChart && result.bar_chart_message) {
+                    // Show the bar chart validation message
+                    showError(result.bar_chart_message);
+                    console.log(`⚠️ [PLOT] Bar chart validation message: ${result.bar_chart_message}`);
+                }
+                
+                // Store and display the results
                 this.currentPlotData = result;
-                this.displayPlotResults(result);
+                this.displayDualPlotResults(result);
             } else {
                 this.showError(result.error || 'Failed to generate plots');
             }
@@ -378,24 +433,88 @@ window.PlottingManager = {
         }
     },
     
-    // Display plot results in modal
-    displayPlotResults(plotData) {
+    // Display dual plot results in modal
+    displayDualPlotResults(plotData) {
         try {
             this.updateModalState('success');
             
-            console.log(`🎨 [PLOT] Displaying plot results`);
+            console.log(`🎨 [PLOT] Displaying dual plot results`);
             
-            // Store plot data for later use
-            const plots = plotData.plots || {};
+            // Check what plot types are available
+            const plotTypes = plotData.plot_types || [];
+            const hasBarChart = plotTypes.includes('bar');
+            const hasSunburst = plotTypes.includes('sunburst');
             
-            // No need to update title elements since we removed the headers
-            // The chart data is stored in this.currentPlotData for preview/download
+            console.log(`📊 [PLOT] Available plot types:`, {
+                bar: hasBarChart,
+                sunburst: hasSunburst,
+                plot_types: plotTypes
+            });
             
-            console.log(`✅ [PLOT] Successfully displayed plot results`);
+            // Update UI to show/hide relevant tabs based on available charts
+            this.updatePlotTabs(hasBarChart, hasSunburst);
+            
+            console.log(`✅ [PLOT] Successfully displayed dual plot results`);
             
         } catch (error) {
-            console.error('Error displaying plot results:', error);
+            console.error('Error displaying dual plot results:', error);
             this.showError('Error displaying chart results');
+        }
+    },
+    
+    // Update plot tabs based on available chart types
+    updatePlotTabs(hasBarChart, hasSunburst) {
+        try {
+            console.log(`📋 [PLOT] Updating tabs - Bar: ${hasBarChart}, Sunburst: ${hasSunburst}`);
+            
+            // Get tab elements
+            const barTab = document.querySelector('.plot-tab[data-chart="bar"]');
+            const columnTab = document.querySelector('.plot-tab[data-chart="column"]');
+            const rowTab = document.querySelector('.plot-tab[data-chart="row"]');
+            
+            // Show/hide tabs based on available charts
+            if (barTab) {
+                if (hasBarChart) {
+                    barTab.style.display = '';
+                    barTab.style.visibility = 'visible';
+                } else {
+                    barTab.style.display = 'none';
+                }
+            }
+            if (columnTab) {
+                if (hasSunburst) {
+                    columnTab.style.display = '';
+                    columnTab.style.visibility = 'visible';
+                } else {
+                    columnTab.style.display = 'none';
+                }
+            }
+            if (rowTab) {
+                if (hasSunburst) {
+                    rowTab.style.display = '';
+                    rowTab.style.visibility = 'visible';
+                } else {
+                    rowTab.style.display = 'none';
+                }
+            }
+            
+            // Set default active tab (prefer bar chart if available)
+            let defaultTab = 'column'; // Default to sunburst
+            if (hasBarChart) {
+                defaultTab = 'bar'; // Prefer bar chart if available
+                console.log(`📋 [PLOT] Defaulting to bar chart (preferred)`);
+            } else if (hasSunburst) {
+                defaultTab = 'column'; // Fall back to sunburst
+                console.log(`📋 [PLOT] Defaulting to column sunburst (bar not available)`);
+            }
+            
+            // Switch to the default tab
+            this.switchChartTab(defaultTab);
+            
+            console.log(`📋 [PLOT] Set default tab to: ${defaultTab}`);
+            
+        } catch (error) {
+            console.error('Error updating plot tabs:', error);
         }
     },
     
@@ -404,12 +523,32 @@ window.PlottingManager = {
         try {
             console.log(`👁️ [PLOT] Previewing ${chartType} chart`);
             
-            if (!this.currentPlotData?.plots?.[chartType + '_first']) {
-                showError('Chart data not available');
+            // Handle different chart types and their data locations
+            let chartData = null;
+            
+            if (chartType === 'bar' && this.currentPlotData?.plots?.bar_chart) {
+                chartData = this.currentPlotData.plots.bar_chart;
+                console.log(`👁️ [PLOT] Found bar chart data`);
+            } else if (chartType === 'column' && this.currentPlotData?.plots?.column_first) {
+                chartData = this.currentPlotData.plots.column_first;
+                console.log(`👁️ [PLOT] Found column sunburst data`);
+            } else if (chartType === 'row' && this.currentPlotData?.plots?.row_first) {
+                chartData = this.currentPlotData.plots.row_first;
+                console.log(`👁️ [PLOT] Found row sunburst data`);
+            } else {
+                console.log(`👁️ [PLOT] No data found for ${chartType}. Available:`, {
+                    plots_bar_chart: !!this.currentPlotData?.plots?.bar_chart,
+                    plots_column_first: !!this.currentPlotData?.plots?.column_first,
+                    plots_row_first: !!this.currentPlotData?.plots?.row_first
+                });
+            }
+            
+            if (!chartData) {
+                console.error(`❌ [PLOT] No chart data found for ${chartType}`);
+                showError(`${chartType} chart data not available`);
                 return;
             }
             
-            const chartData = this.currentPlotData.plots[chartType + '_first'];
             const previewContainer = document.getElementById(`plot-preview-${chartType}`);
             
             // Create iframe to display HTML chart
@@ -438,13 +577,25 @@ window.PlottingManager = {
         try {
             console.log(`💾 [PLOT] Downloading ${chartType} chart`);
             
-            if (!this.currentPlotData?.plots?.[chartType + '_first']) {
-                showError('Chart data not available');
-                return;
+            // Handle different chart types and their data locations
+            let chartData = null;
+            let filename = '';
+            
+            if (chartType === 'bar' && this.currentPlotData?.plots?.bar_chart) {
+                chartData = this.currentPlotData.plots.bar_chart;
+                filename = 'bar_chart.html';
+            } else if (chartType === 'column' && this.currentPlotData?.plots?.column_first) {
+                chartData = this.currentPlotData.plots.column_first;
+                filename = 'sunburst_column_first.html';
+            } else if (chartType === 'row' && this.currentPlotData?.plots?.row_first) {
+                chartData = this.currentPlotData.plots.row_first;
+                filename = 'sunburst_row_first.html';
             }
             
-            const chartData = this.currentPlotData.plots[chartType + '_first'];
-            const filename = `${chartType}_first_sunburst_chart.html`;
+            if (!chartData) {
+                showError(`${chartType} chart data not available`);
+                return;
+            }
             
             // Create blob and download
             const blob = new Blob([chartData.html_content], { type: 'text/html' });
@@ -457,7 +608,7 @@ window.PlottingManager = {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            showSuccess(`Downloaded ${chartType}-first chart as ${filename}`);
+            showSuccess(`Downloaded ${chartType} chart as ${filename}`);
             console.log(`✅ [PLOT] Successfully downloaded ${filename}`);
             
         } catch (error) {
@@ -466,46 +617,61 @@ window.PlottingManager = {
         }
     },
     
-    // Download both charts
+    // Download all available charts
     downloadBothCharts() {
         try {
-            console.log(`💾 [PLOT] Downloading both charts`);
+            console.log(`💾 [PLOT] Downloading all available charts`);
             
-            if (!this.currentPlotData?.plots) {
+            if (!this.currentPlotData) {
                 showError('Chart data not available');
                 return;
             }
             
-            const plots = this.currentPlotData.plots;
             let downloadCount = 0;
             
-            // Download column-first chart
-            if (plots.column_first) {
-                const blob1 = new Blob([plots.column_first.html_content], { type: 'text/html' });
-                const url1 = URL.createObjectURL(blob1);
-                const a1 = document.createElement('a');
-                a1.href = url1;
-                a1.download = 'column_first_sunburst_chart.html';
-                document.body.appendChild(a1);
-                a1.click();
-                document.body.removeChild(a1);
-                URL.revokeObjectURL(url1);
+            // Download bar chart if available
+            if (this.currentPlotData.plots?.bar) {
+                const blob = new Blob([this.currentPlotData.plots.bar.html_content], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'bar_chart.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
                 downloadCount++;
             }
             
-            // Download row-first chart with slight delay
-            if (plots.row_first) {
+            // Download column-first sunburst chart
+            if (this.currentPlotData.plots?.column_first) {
                 setTimeout(() => {
-                    const blob2 = new Blob([plots.row_first.html_content], { type: 'text/html' });
-                    const url2 = URL.createObjectURL(blob2);
-                    const a2 = document.createElement('a');
-                    a2.href = url2;
-                    a2.download = 'row_first_sunburst_chart.html';
-                    document.body.appendChild(a2);
-                    a2.click();
-                    document.body.removeChild(a2);
-                    URL.revokeObjectURL(url2);
-                }, 500);
+                    const blob = new Blob([this.currentPlotData.plots.column_first.html_content], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'sunburst_column_first.html';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 200);
+                downloadCount++;
+            }
+            
+            // Download row-first sunburst chart
+            if (this.currentPlotData.plots?.row_first) {
+                setTimeout(() => {
+                    const blob = new Blob([this.currentPlotData.plots.row_first.html_content], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'sunburst_row_first.html';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 400);
                 downloadCount++;
             }
             
@@ -555,7 +721,15 @@ window.PlottingManager = {
                 `;
             });
             
-            // Reset tabs
+            // Reset tabs to default state
+            const allTabs = modal.querySelectorAll('.plot-tab');
+            allTabs.forEach(tab => {
+                tab.style.display = '';
+                tab.style.visibility = 'visible';
+                tab.classList.remove('active');
+            });
+            
+            // Set default active tab
             this.switchChartTab('column');
             
             // Restore background scroll
@@ -655,10 +829,16 @@ window.PlottingManager = {
         const downloadBtn = document.getElementById('download-btn');
         
         if (previewBtn) {
-            previewBtn.onclick = () => this.previewChart(chartType);
+            previewBtn.onclick = () => {
+                console.log(`🔘 [PLOT] Preview button clicked for ${chartType}`);
+                window.PlottingManager.previewChart(chartType);
+            };
         }
         if (downloadBtn) {
-            downloadBtn.onclick = () => this.downloadChart(chartType);
+            downloadBtn.onclick = () => {
+                console.log(`🔘 [PLOT] Download button clicked for ${chartType}`);
+                window.PlottingManager.downloadChart(chartType);
+            };
         }
     }
 };

@@ -121,13 +121,15 @@ class AliasSystemStatus(BaseModel):
     system_ready: bool
 
 class PlotRequest(BaseModel):
-    table_data: dict = Field(..., description="JSON table data from frontend download")
+    completely_flattened_data: dict = Field(..., description="Completely flattened JSON data for bar charts")
+    normal_data: dict = Field(..., description="Normal hierarchical JSON data for sunburst charts")
 
 class PlotResponse(BaseModel):
     success: bool
-    plot_type: Optional[str] = None
-    data_points: Optional[int] = None
-    plots: Optional[dict] = None  # Contains both column_first and row_first
+    plot_types: Optional[List[str]] = None  # Updated to support multiple plot types
+    data_points_bar: Optional[int] = None
+    data_points_sunburst: Optional[int] = None
+    plots: Optional[dict] = None  # Contains bar_chart, column_first, row_first
     analysis: Optional[dict] = None
     message: Optional[str] = None
     error: Optional[str] = None
@@ -415,141 +417,188 @@ async def handle_query(conversation_id: str, request: QueryRequest):
 @app.post("/plot/generate", response_model=PlotResponse)
 async def generate_plot(request: PlotRequest):
     """
-    Generate sunburst plots from table data.
+    Generate plots from dual JSON inputs.
     
-    This endpoint receives JSON table data (from frontend download) and generates
-    both column-first and row-first sunburst charts for hierarchical data visualization.
+    This endpoint receives two JSON inputs from the frontend:
+    1. completely_flattened_data: For bar chart generation (simple structure)
+    2. normal_data: For sunburst chart generation (hierarchical structure)
+    
+    The system automatically:
+    - Validates both inputs for appropriate chart types
+    - Generates bar chart if flattened data is valid and simple
+    - Always generates sunburst chart from normal data
+    - Applies filtering to remove total/summary columns
     
     Returns:
+    - Bar chart: For simple flat data visualization
     - Column-first sunburst: Time/Period hierarchy first, then categories
     - Row-first sunburst: Categories first, then time/period hierarchy
-    
-    Future enhancements:
-    - LLM-based column selection (determine general vs specific columns)
-    - Bar chart support for simple tables
     """
     try:
-        logger.info(f"📊 [PLOT] New plotting request received")
+        logger.info(f"📊 [PLOT] New dual-input plotting request received")
         
-        # Validate table data structure
-        if not isinstance(request.table_data, dict):
-            logger.error(f"❌ [PLOT] Invalid table_data type: {type(request.table_data)}")
-            raise HTTPException(status_code=400, detail="table_data must be a dictionary")
-        
-        # Log comprehensive request details
-        table_data = request.table_data
-        logger.info(f"📊 [PLOT] Request data structure analysis:")
-        logger.info(f"  📋 table_data keys: {list(table_data.keys())}")
-        logger.info(f"  📋 filename: {table_data.get('filename', 'MISSING')}")
-        logger.info(f"  📋 has_multiindex: {table_data.get('has_multiindex', 'MISSING')}")
-        logger.info(f"  📋 final_columns count: {len(table_data.get('final_columns', []))}")
-        logger.info(f"  📋 data_rows count: {len(table_data.get('data_rows', []))}")
-        
-        if table_data.get('data_rows'):
-            first_row = table_data['data_rows'][0]
-            logger.info(f"  📋 data_rows[0] length: {len(first_row)}")
-            logger.info(f"  📋 data_rows[0] types: {[type(cell).__name__ for cell in first_row]}")
-            logger.info(f"  📋 data_rows[0] values: {first_row}")
+        # Validate both input data structures
+        if not isinstance(request.completely_flattened_data, dict):
+            logger.error(f"❌ [PLOT] Invalid completely_flattened_data type: {type(request.completely_flattened_data)}")
+            raise HTTPException(status_code=400, detail="completely_flattened_data must be a dictionary")
             
-            # Check for numpy types in data
-            numpy_types_found = []
-            for i, cell in enumerate(first_row):
-                cell_type = type(cell).__name__
-                if 'numpy' in str(type(cell)) or 'int64' in cell_type or 'float64' in cell_type:
-                    numpy_types_found.append(f"position {i}: {cell_type} = {cell}")
+        if not isinstance(request.normal_data, dict):
+            logger.error(f"❌ [PLOT] Invalid normal_data type: {type(request.normal_data)}")
+            raise HTTPException(status_code=400, detail="normal_data must be a dictionary")
+        
+        # Log comprehensive request details for both inputs
+        flattened_data = request.completely_flattened_data
+        normal_data = request.normal_data
+        
+        logger.info(f"📊 [PLOT] Dual input data structure analysis:")
+        logger.info(f"📊 [FLATTENED] Completely flattened data:")
+        logger.info(f"  📋 keys: {list(flattened_data.keys())}")
+        logger.info(f"  📋 filename: {flattened_data.get('filename', 'MISSING')}")
+        logger.info(f"  📋 has_multiindex: {flattened_data.get('has_multiindex', 'MISSING')}")
+        logger.info(f"  📋 final_columns count: {len(flattened_data.get('final_columns', []))}")
+        logger.info(f"  📋 data_rows count: {len(flattened_data.get('data_rows', []))}")
+        logger.info(f"  📋 feature_rows: {flattened_data.get('feature_rows', 'MISSING')}")
+        
+        logger.info(f"🌅 [NORMAL] Normal hierarchical data:")
+        logger.info(f"  📋 keys: {list(normal_data.keys())}")
+        logger.info(f"  📋 filename: {normal_data.get('filename', 'MISSING')}")
+        logger.info(f"  📋 has_multiindex: {normal_data.get('has_multiindex', 'MISSING')}")
+        logger.info(f"  📋 final_columns count: {len(normal_data.get('final_columns', []))}")
+        logger.info(f"  📋 data_rows count: {len(normal_data.get('data_rows', []))}")
+        logger.info(f"  📋 header_matrix levels: {len(normal_data.get('header_matrix', []))}")
+        
+        # Validate flattened data for bar chart suitability
+        logger.info(f"🔍 [VALIDATION] Checking flattened data for bar chart suitability...")
+        flattened_valid = True
+        flattened_error = None
+        
+        try:
+            # Check required fields for bar chart
+            required_fields = ['final_columns', 'data_rows', 'feature_rows']
+            missing_fields = [field for field in required_fields if field not in flattened_data]
+            if missing_fields:
+                flattened_error = f"Missing required fields: {missing_fields}"
+                flattened_valid = False
+            elif flattened_data.get('has_multiindex', False):
+                flattened_error = "Flattened data should not have multiindex structure"
+                flattened_valid = False
+            elif len(flattened_data.get('feature_rows', [])) != 1:
+                flattened_error = f"Bar charts require exactly 1 categorical column, got {len(flattened_data.get('feature_rows', []))}"
+                flattened_valid = False
+        except Exception as e:
+            flattened_error = f"Error validating flattened data: {str(e)}"
+            flattened_valid = False
             
-            if numpy_types_found:
-                logger.warning(f"⚠️ [PLOT] NUMPY TYPES DETECTED in data_rows[0]:")
-                for numpy_type in numpy_types_found:
-                    logger.warning(f"    🔢 {numpy_type}")
+        logger.info(f"📊 [FLATTENED] Validation result: {'✅ VALID' if flattened_valid else '❌ INVALID'}")
+        if flattened_error:
+            logger.info(f"📊 [FLATTENED] Error: {flattened_error}")
+            
+        # Validate normal data for sunburst chart
+        logger.info(f"🔍 [VALIDATION] Checking normal data for sunburst chart...")
+        normal_valid = True
+        normal_error = None
         
-        logger.info(f"  📋 row_count: {table_data.get('row_count', 'MISSING')} (type: {type(table_data.get('row_count', None)).__name__})")
-        logger.info(f"  📋 col_count: {table_data.get('col_count', 'MISSING')} (type: {type(table_data.get('col_count', None)).__name__})")
-        logger.info(f"  📋 feature_rows: {table_data.get('feature_rows', 'MISSING')}")
-        logger.info(f"  📋 feature_cols: {table_data.get('feature_cols', 'MISSING')}")
-        logger.info(f"  📋 flatten_level_applied: {table_data.get('flatten_level_applied', 'MISSING')}")
-        
-        # Check filters_applied for numpy types
-        filters_applied = table_data.get('filters_applied', {})
-        if filters_applied:
-            logger.info(f"  📋 filters_applied: {filters_applied}")
-            for key, value in filters_applied.items():
-                logger.info(f"    🔧 {key}: {value} (type: {type(value).__name__})")
-                if 'numpy' in str(type(value)):
-                    logger.warning(f"    ⚠️ NUMPY TYPE in filters_applied[{key}]: {type(value)}")
-        
-        # Validate expected frontend JSON format (from table.js downloadAsJSON)
-        required_fields = ['final_columns', 'data_rows', 'feature_rows', 'feature_cols']
-        missing_fields = [field for field in required_fields if field not in table_data]
-        if missing_fields:
-            logger.error(f"❌ [PLOT] Missing required fields: {missing_fields}")
+        try:
+            # Check required fields for sunburst chart
+            required_fields = ['final_columns', 'data_rows', 'feature_rows', 'feature_cols']
+            missing_fields = [field for field in required_fields if field not in normal_data]
+            if missing_fields:
+                normal_error = f"Missing required fields: {missing_fields}"
+                normal_valid = False
+        except Exception as e:
+            normal_error = f"Error validating normal data: {str(e)}"
+            normal_valid = False
+            
+        logger.info(f"🌅 [NORMAL] Validation result: {'✅ VALID' if normal_valid else '❌ INVALID'}")
+        if normal_error:
+            logger.info(f"🌅 [NORMAL] Error: {normal_error}")
+            
+        # Ensure at least one input is valid
+        if not flattened_valid and not normal_valid:
+            logger.error(f"❌ [PLOT] Both inputs are invalid")
             raise HTTPException(
                 status_code=400, 
-                detail=f"Missing required fields in table_data: {missing_fields}. Expected frontend JSON format with final_columns, data_rows, feature_rows, feature_cols."
+                detail=f"Both inputs are invalid. Flattened: {flattened_error}. Normal: {normal_error}"
             )
         
-        # Log data consistency check
-        final_columns_count = len(table_data.get('final_columns', []))
-        data_rows_count = len(table_data.get('data_rows', []))
-        data_row_length = len(table_data['data_rows'][0]) if table_data.get('data_rows') else 0
-        col_count = table_data.get('col_count', 0)
-        
-        logger.info(f"📊 [PLOT] Data consistency analysis:")
-        logger.info(f"  📏 final_columns.length: {final_columns_count}")
-        logger.info(f"  📏 data_rows.length: {data_rows_count}")
-        logger.info(f"  📏 data_rows[0].length: {data_row_length}")
-        logger.info(f"  📏 col_count: {col_count}")
-        logger.info(f"  ✅ data_rows[0].length == col_count: {data_row_length == col_count}")
-        
-        if data_row_length != col_count:
-            logger.warning(f"⚠️ [PLOT] Data length mismatch: data_rows[0].length({data_row_length}) != col_count({col_count})")
-        
-        # CRITICAL: Sanitize all data to remove numpy types before processing
-        logger.info(f"🧹 [PLOT] Sanitizing data to remove numpy types...")
-        sanitized_table_data = sanitize_numpy_types(table_data)
+        # CRITICAL: Sanitize data to remove numpy types before processing
+        logger.info(f"🧹 [PLOT] Sanitizing both inputs to remove numpy types...")
+        sanitized_flattened = sanitize_numpy_types(flattened_data) if flattened_valid else None
+        sanitized_normal = sanitize_numpy_types(normal_data) if normal_valid else None
         logger.info(f"✅ [PLOT] Data sanitization completed")
-        
-        # Log the plotting request
-        logger.info(f"📊 [PLOT] Initializing PlotGenerator...")
-        logger.info(f"📊 [PLOT] Table shape: {len(sanitized_table_data.get('data_rows', []))} rows × {len(sanitized_table_data.get('final_columns', []))} columns")
-        logger.info(f"📊 [PLOT] Has hierarchical: {sanitized_table_data.get('has_multiindex', False)}")
-        logger.info(f"📊 [PLOT] Flatten level: {sanitized_table_data.get('flatten_level_applied', 'unknown')}")
-        logger.info(f"📊 [PLOT] Feature rows: {sanitized_table_data.get('feature_rows', [])}")
-        logger.info(f"📊 [PLOT] Feature cols: {sanitized_table_data.get('feature_cols', [])}")
         
         # Initialize plot generator
         plot_generator = PlotGenerator()
         
-        # Generate sunburst plots (both column-first and row-first)
-        logger.info(f"🎨 [PLOT] Starting plot generation...")
-        plot_result = plot_generator.generate_plot(sanitized_table_data)
+        # Generate plots based on valid inputs
+        plots_generated = {}
+        plot_types = []
+        analysis_results = {}
+        total_data_points = 0
+        bar_data_points = None
+        sunburst_data_points = None
+        messages = []
         
-        logger.info(f"📊 [PLOT] Plot generation completed: {plot_result.get('success', False)}")
+        # Generate bar chart if flattened data is valid
+        if flattened_valid and sanitized_flattened:
+            logger.info(f"📊 [BAR] Generating bar chart from flattened data...")
+            bar_result = plot_generator.generate_bar_plots(sanitized_flattened)
+            
+            if bar_result.get('success'):
+                logger.info(f"✅ [BAR] Bar chart generated successfully")
+                plot_types.append('bar')
+                bar_data_points = bar_result.get('data_points')
+                if bar_result.get('plots'):
+                    plots_generated.update(bar_result['plots'])
+                if bar_result.get('analysis'):
+                    analysis_results['bar'] = bar_result['analysis']
+                messages.append(f"Bar chart: {bar_result.get('message', 'Generated successfully')}")
+            else:
+                logger.warning(f"⚠️ [BAR] Bar chart generation failed: {bar_result.get('error')}")
+                messages.append(f"Bar chart failed: {bar_result.get('error')}")
         
-        if plot_result.get('success'):
-            logger.info(f"✅ [PLOT] SUCCESS: Generated {plot_result.get('plot_type')} plots with {plot_result.get('data_points')} data points")
-            plots = plot_result.get('plots', {})
-            if plots:
-                logger.info(f"📈 [PLOT] Generated plots:")
-                if 'column_first' in plots:
-                    logger.info(f"  📊 Column-first: {plots['column_first'].get('title', 'Untitled')}")
-                if 'row_first' in plots:
-                    logger.info(f"  📊 Row-first: {plots['row_first'].get('title', 'Untitled')}")
-        else:
-            logger.error(f"❌ [PLOT] FAILED: {plot_result.get('error', 'Unknown error')}")
+        # Generate sunburst chart if normal data is valid
+        if normal_valid and sanitized_normal:
+            logger.info(f"🌅 [SUNBURST] Generating sunburst chart from normal data...")
+            sunburst_result = plot_generator.generate_sunburst_plots(sanitized_normal)
+            
+            if sunburst_result.get('success'):
+                logger.info(f"✅ [SUNBURST] Sunburst chart generated successfully")
+                plot_types.append('sunburst')
+                sunburst_data_points = sunburst_result.get('data_points')
+                if sunburst_result.get('plots'):
+                    plots_generated.update(sunburst_result['plots'])
+                if sunburst_result.get('analysis'):
+                    analysis_results['sunburst'] = sunburst_result['analysis']
+                messages.append(f"Sunburst chart: {sunburst_result.get('message', 'Generated successfully')}")
+            else:
+                logger.warning(f"⚠️ [SUNBURST] Sunburst chart generation failed: {sunburst_result.get('error')}")
+                messages.append(f"Sunburst chart failed: {sunburst_result.get('error')}")
+        
+        # Determine overall success
+        success = len(plot_types) > 0
+        final_message = "; ".join(messages) if messages else "No plots generated"
+        
+        logger.info(f"📊 [PLOT] Dual plotting completed:")
+        logger.info(f"  ✅ Success: {success}")
+        logger.info(f"  📊 Plot types: {plot_types}")
+        logger.info(f"  📊 Bar data points: {bar_data_points}")
+        logger.info(f"  📊 Sunburst data points: {sunburst_data_points}")
+        logger.info(f"  📈 Total plots: {len(plots_generated)}")
         
         # Convert to response format
         response = PlotResponse(
-            success=plot_result.get('success', False),
-            plot_type=plot_result.get('plot_type'),
-            data_points=plot_result.get('data_points'),
-            plots=plot_result.get('plots'),
-            analysis=plot_result.get('analysis'),
-            message=plot_result.get('message'),
-            error=plot_result.get('error')
+            success=success,
+            plot_types=plot_types if plot_types else None,
+            data_points_bar=bar_data_points,
+            data_points_sunburst=sunburst_data_points,
+            plots=plots_generated if plots_generated else None,
+            analysis=analysis_results if analysis_results else None,
+            message=final_message,
+            error=None if success else "Failed to generate any plots"
         )
         
-        logger.info(f"📤 [PLOT] Sending response: success={response.success}")
+        logger.info(f"📤 [PLOT] Sending dual-input response: success={response.success}")
         return response
         
     except HTTPException:

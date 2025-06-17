@@ -33,7 +33,33 @@ class PlotGenerator:
     def __init__(self):
         """Initialize the PlotGenerator with basic plotting capabilities"""
         self.logger = logging.getLogger(__name__)
-        self.supported_plot_types = ['sunburst']  # Only sunburst for now
+        self.supported_plot_types = ['sunburst', 'bar']  # Support both sunburst and bar charts
+        self.remove_keywords = ['Tổng', 'Cộng']  # Default filter keywords for total columns
+    
+    def _is_simple_structure_for_bar_chart(self, frontend_data: Dict) -> bool:
+        """
+        Check if data structure is simple enough for bar charts.
+        
+        Criteria for bar chart suitability:
+        - No multiindex structure (has_multiindex == False)
+        - Only single categorical column (len(feature_rows) == 1)
+        - Simple flat structure
+        """
+        feature_rows = frontend_data.get('feature_rows', [])
+        has_multiindex = frontend_data.get('has_multiindex', False)
+        
+        is_simple = (
+            not has_multiindex and 
+            len(feature_rows) == 1  # Only single categorical column supported
+        )
+        
+        logger.info(f"📊 [PLOTTING] Simple structure check:")
+        logger.info(f"  📋 has_multiindex: {has_multiindex}")
+        logger.info(f"  📋 feature_rows count: {len(feature_rows)}")
+        logger.info(f"  📋 feature_rows: {feature_rows}")
+        logger.info(f"  ✅ Is simple for bar chart: {is_simple}")
+        
+        return is_simple
     
     def _analyze_header_matrix_structure(self, header_matrix: List[List[Dict[str, Any]]], final_columns: List[str], data_rows: List[List]) -> Dict:
         """
@@ -108,10 +134,10 @@ class PlotGenerator:
         """
         if priority == 'column':
             plot_path = col_level_cols + categorical_names
-            title = f"Sunburst Chart: {filename} (Column-first Hierarchy)"
+            title = f"{filename} (Column-first Hierarchy)"
         else:  # priority == 'row'
             plot_path = categorical_names + col_level_cols
-            title = f"Sunburst Chart: {filename} (Row-first Hierarchy)"
+            title = f"{filename} (Row-first Hierarchy)"
         
         # Remove any columns from plot_path that don't exist in the DataFrame
         valid_plot_path = [col for col in plot_path if col in df.columns]
@@ -123,21 +149,21 @@ class PlotGenerator:
             if col in df_copy.columns:
                 df_copy[col] = df_copy[col].fillna('Unknown')
         
-        # Create the sunburst plot
+        # Create the sunburst plot without title
         fig = px.sunburst(
             df_copy,
             path=plot_path,
             values='value',
-            title=title,
             hover_data={'value': True}
         )
 
-        # Enhanced sunburst configuration
+        # Enhanced sunburst configuration with square layout
         fig.update_layout(
-            margin=dict(t=80, l=25, r=25, b=25), 
+            margin=dict(t=80, l=25, r=25, b=25),  # Reduced top margin since no title
             font=dict(size=11),
-            title_font_size=14,
-            showlegend=False
+            showlegend=False,
+            width=600,   # Set fixed width for square aspect
+            height=600   # Set fixed height for square aspect
         )
         
         fig.update_traces(
@@ -220,9 +246,44 @@ class PlotGenerator:
             
             logger.info(f"📊 [PLOTTING] Structure analysis results:")
             logger.info(f"  🏷️ Categorical positions: {categorical_positions}")
-            logger.info(f"  🔢 Numeric positions: {numeric_positions}")
+            logger.info(f"  🔢 Numeric positions (before filtering): {numeric_positions}")
             logger.info(f"  📏 Data length: {structure_info['data_length']}")
             logger.info(f"  📏 Columns length: {structure_info['columns_length']}")
+            
+            # Apply filtering to sunburst data - remove positions with total keywords
+            logger.info(f"🔍 [SUNBURST FILTERING] Applying filtering to numeric positions...")
+            original_numeric_positions = numeric_positions.copy()
+            filtered_out_positions = []
+            
+            numeric_positions_filtered = []
+            for pos in numeric_positions:
+                if pos < len(final_columns):
+                    column_name = final_columns[pos]
+                    should_filter = any(keyword in column_name for keyword in self.remove_keywords)
+                    if should_filter:
+                        filtered_out_positions.append(pos)
+                        logger.info(f"  ❌ FILTERED OUT position {pos}: {column_name}")
+                    else:
+                        numeric_positions_filtered.append(pos)
+                        logger.info(f"  ✅ KEEPING position {pos}: {column_name}")
+                else:
+                    logger.warning(f"  ⚠️ Position {pos} >= final_columns length {len(final_columns)}")
+            
+            # Update numeric positions with filtered results
+            numeric_positions = numeric_positions_filtered
+            
+            logger.info(f"📊 [SUNBURST FILTERING] Filtering results:")
+            logger.info(f"  📋 Original numeric positions: {len(original_numeric_positions)}")
+            logger.info(f"  📋 Filtered out positions: {len(filtered_out_positions)}")
+            logger.info(f"  📋 Final numeric positions: {len(numeric_positions)}")
+            logger.info(f"  🔢 Numeric positions (after filtering): {numeric_positions}")
+            
+            if not numeric_positions:
+                logger.error(f"❌ [SUNBURST FILTERING] No valid numeric columns found after filtering")
+                return {
+                    'success': False,
+                    'error': 'No valid numeric columns found to plot after filtering out totals'
+                }
             
             # Get categorical column names from the header_matrix
             categorical_names = []
@@ -376,9 +437,13 @@ class PlotGenerator:
                     'categorical_columns': categorical_names,
                     'hierarchy_levels': len(col_level_cols),
                     'total_value': total_value,
-                    'unique_categories': unique_categories
+                    'unique_categories': unique_categories,
+                    'numeric_positions_original': len(original_numeric_positions),
+                    'numeric_positions_filtered': len(numeric_positions),
+                    'filtered_out_count': len(filtered_out_positions),
+                    'filtered_out_positions': filtered_out_positions
                 },
-                'message': f'Successfully created both column-first and row-first sunburst charts with {len(df)} data points'
+                'message': f'Successfully created both column-first and row-first sunburst charts with {len(df)} data points (filtered out {len(filtered_out_positions)} total columns)'
             }
             
         except Exception as e:
@@ -389,9 +454,262 @@ class PlotGenerator:
                 'plot_type': 'sunburst'
             }
 
+    def generate_bar_plots(self, frontend_data: Dict) -> Dict:
+        """
+        Generate bar chart from simple flat table data.
+        
+        This method handles completely flattened data structure with:
+        - Single categorical column (feature_rows)
+        - Multiple numeric columns representing time series or categories
+        - Automatic filtering of total/summary columns
+        """
+        try:
+            logger.info(f"📊 [BAR PLOTTING] Starting bar chart generation")
+            
+            # Extract data from frontend format
+            final_columns = frontend_data.get('final_columns', [])
+            data_rows = frontend_data.get('data_rows', [])
+            feature_rows = frontend_data.get('feature_rows', [])
+            filename = frontend_data.get('filename', 'table')
+            
+            logger.info(f"📋 [BAR PLOTTING] Input data analysis:")
+            logger.info(f"  📋 final_columns: {len(final_columns)} items")
+            logger.info(f"  📋 data_rows: {len(data_rows)} rows")
+            logger.info(f"  📋 feature_rows: {feature_rows}")
+            logger.info(f"  📋 filename: {filename}")
+            
+            if not final_columns or not data_rows or not feature_rows:
+                logger.error(f"❌ [BAR PLOTTING] Missing required data")
+                return {
+                    'success': False,
+                    'error': 'Missing required data for bar chart: final_columns, data_rows, feature_rows'
+                }
+            
+            # Validate simple structure
+            if len(feature_rows) != 1:
+                logger.error(f"❌ [BAR PLOTTING] Bar charts only support single categorical column, got {len(feature_rows)}")
+                return {
+                    'success': False,
+                    'error': f'Bar charts only support single categorical column, got {len(feature_rows)} columns'
+                }
+            
+            categorical_col = feature_rows[0]
+            logger.info(f"📊 [BAR PLOTTING] Categorical column: {categorical_col}")
+            
+            # Identify numeric columns (all columns except categorical)
+            potential_numeric_cols = [col for col in final_columns if col not in feature_rows]
+            
+            # Filter out columns containing total keywords
+            numeric_cols_to_plot = []
+            filtered_out_cols = []
+            
+            for col in potential_numeric_cols:
+                should_filter = any(keyword in col for keyword in self.remove_keywords)
+                if should_filter:
+                    filtered_out_cols.append(col)
+                else:
+                    numeric_cols_to_plot.append(col)
+            
+            logger.info(f"📊 [BAR PLOTTING] Column filtering:")
+            logger.info(f"  📋 Potential numeric columns: {len(potential_numeric_cols)}")
+            logger.info(f"  📋 Filtered out (totals): {filtered_out_cols}")
+            logger.info(f"  📋 Columns to plot: {len(numeric_cols_to_plot)}")
+            
+            if not numeric_cols_to_plot:
+                logger.error(f"❌ [BAR PLOTTING] No valid numeric columns found after filtering")
+                return {
+                    'success': False,
+                    'error': 'No valid numeric columns found to plot after filtering out totals'
+                }
+            
+            # Create DataFrame
+            df = pd.DataFrame(data_rows, columns=final_columns)
+            logger.info(f"📊 [BAR PLOTTING] DataFrame created: {df.shape}")
+            
+            # Melt the DataFrame to long format for plotting
+            df_melted = df.melt(
+                id_vars=[categorical_col],
+                value_vars=numeric_cols_to_plot,
+                var_name='Metric',
+                value_name='Value'
+            )
+            
+            logger.info(f"📊 [BAR PLOTTING] DataFrame melted: {df_melted.shape}")
+            
+            # Clean up data types
+            df_melted['Value'] = pd.to_numeric(df_melted['Value'], errors='coerce')
+            df_melted = df_melted.dropna(subset=['Value'])
+            
+            # Simplify metric labels for better readability
+            def simplify_column_name(col_name):
+                """
+                Simplify complex column names like 'N2024 6Tđn QI Tháng 01' to 'Tháng 01'
+                Extract the most meaningful part of the column name
+                """
+                # If contains 'Tháng' (Month), extract 'Tháng XX'
+                if 'Tháng' in col_name:
+                    parts = col_name.split()
+                    tháng_idx = next(i for i, part in enumerate(parts) if 'Tháng' in part)
+                    if tháng_idx + 1 < len(parts):
+                        return f"{parts[tháng_idx]} {parts[tháng_idx + 1]}"
+                    else:
+                        return parts[tháng_idx]
+                # Otherwise, take the last 2 meaningful parts
+                else:
+                    parts = col_name.split()
+                    if len(parts) >= 2:
+                        return ' '.join(parts[-2:])
+                    else:
+                        return col_name
+            
+            df_melted['MetricLabel'] = df_melted['Metric'].apply(simplify_column_name)
+            
+            # Sort by metric labels for consistent ordering
+            try:
+                # Try to extract numbers for sorting (for time-based data)
+                df_melted['Metric_Number'] = df_melted['MetricLabel'].str.extract(r'(\d+)').astype(int)
+                df_melted = df_melted.sort_values(by=['Metric_Number'])
+                logger.info(f"📊 [BAR PLOTTING] Sorted by numeric metric order")
+            except Exception:
+                # Fallback to alphabetical sorting
+                df_melted = df_melted.sort_values(by=['MetricLabel'])
+                logger.info(f"📊 [BAR PLOTTING] Sorted alphabetically")
+            
+            # Create bar chart
+            logger.info(f"🎨 [BAR PLOTTING] Creating bar chart...")
+            fig = px.bar(
+                df_melted,
+                x='MetricLabel',
+                y='Value',
+                color=categorical_col,
+                barmode='group',
+                text_auto=True
+            )
+            
+            # Clean layout - similar to sunburst style
+            fig.update_layout(
+                margin=dict(t=25, l=25, r=25, b=25),  # Minimal margins like sunburst
+                font=dict(size=11),
+                showlegend=True,  # Keep legend as requested
+                legend=dict(
+                    title="",  # Remove legend title for cleaner look
+                    orientation="h",  # Horizontal legend
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5
+                ),
+                xaxis=dict(
+                    title="",  # Remove axis title
+                    categoryorder='array', 
+                    categoryarray=df_melted['MetricLabel'].unique()
+                ),
+                yaxis=dict(
+                    title=""  # Remove axis title
+                ),
+                template="simple_white",
+                width=800,
+                height=500
+            )
+            
+            # Convert to HTML - consistent with sunburst approach
+            html_content = fig.to_html()
+            
+            # Calculate analysis metrics
+            total_value = float(df_melted['Value'].sum())
+            unique_categories = int(df_melted[categorical_col].nunique())
+            
+            logger.info(f"✅ [BAR PLOTTING] Bar chart generation completed successfully")
+            logger.info(f"📊 [BAR PLOTTING] Analysis: total_value={total_value}, unique_categories={unique_categories}")
+            
+            return {
+                'success': True,
+                'plot_type': 'bar',
+                'data_points': len(df_melted),
+                'plots': {
+                    'bar_chart': {
+                        'title': f"Bar Chart: {filename}",
+                        'html_content': html_content,
+                        'categorical_column': categorical_col,
+                        'metrics_plotted': numeric_cols_to_plot,
+                        'filtered_columns': filtered_out_cols
+                    }
+                },
+                'analysis': {
+                    'categorical_column': categorical_col,
+                    'metrics_count': len(numeric_cols_to_plot),
+                    'total_value': total_value,
+                    'unique_categories': unique_categories,
+                    'filtered_out_count': len(filtered_out_cols)
+                },
+                'message': f'Successfully created bar chart with {len(numeric_cols_to_plot)} metrics and {unique_categories} categories'
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ [BAR PLOTTING] Error creating bar chart: {str(e)}", exc_info=True)
+            return {
+                'success': False,
+                'error': f'Error creating bar chart: {str(e)}',
+                'plot_type': 'bar'
+            }
+
     def generate_plot(self, frontend_data: Dict) -> Dict:
         """
-        Main plotting function - currently only supports sunburst charts.
-        Future: Will add LLM column selection and bar charts.
+        Main plotting function - generates appropriate charts based on data structure.
+        
+        Decision logic:
+        - Always generate sunburst chart (works for all data)
+        - Additionally generate bar chart if simple structure (has_multiindex=False, single feature_rows)
         """
-        return self.generate_sunburst_plots(frontend_data)
+        try:
+            logger.info(f"🎯 [PLOTTING] Starting plot generation...")
+            
+            # ALWAYS generate sunburst chart first
+            logger.info(f"🌅 [PLOTTING] Generating SUNBURST CHART (always generated)")
+            sunburst_result = self.generate_sunburst_plots(frontend_data)
+            
+            # Check if data structure is simple enough for bar charts
+            is_simple = self._is_simple_structure_for_bar_chart(frontend_data)
+            
+            if is_simple:
+                logger.info(f"📊 [PLOTTING] Simple structure detected - ALSO generating BAR CHART")
+                bar_result = self.generate_bar_plots(frontend_data)
+                
+                # Combine both results
+                if sunburst_result.get('success') and bar_result.get('success'):
+                    combined_plots = {}
+                    combined_plots.update(sunburst_result.get('plots', {}))
+                    combined_plots.update(bar_result.get('plots', {}))
+                    
+                    return {
+                        'success': True,
+                        'plot_types': ['sunburst', 'bar'],  # Both generated
+                        'data_points_sunburst': sunburst_result.get('data_points'),
+                        'data_points_bar': bar_result.get('data_points'),
+                        'plots': combined_plots,
+                        'analysis': {
+                            'sunburst': sunburst_result.get('analysis'),
+                            'bar': bar_result.get('analysis')
+                        },
+                        'message': f'Generated both sunburst and bar charts for versatile visualization'
+                    }
+                elif sunburst_result.get('success'):
+                    # Sunburst worked, bar failed - return sunburst
+                    logger.warning(f"⚠️ [PLOTTING] Bar chart failed, returning sunburst only")
+                    return sunburst_result
+                else:
+                    # Both failed
+                    return {
+                        'success': False,
+                        'error': f'Both sunburst and bar chart generation failed'
+                    }
+            else:
+                logger.info(f"📊 [PLOTTING] Complex structure - returning SUNBURST CHART only")
+                return sunburst_result
+                
+        except Exception as e:
+            logger.error(f"❌ [PLOTTING] Error in main plot generation: {str(e)}", exc_info=True)
+            return {
+                'success': False,
+                'error': f'Error determining plot type: {str(e)}'
+            }

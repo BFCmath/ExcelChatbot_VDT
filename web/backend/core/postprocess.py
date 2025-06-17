@@ -131,27 +131,27 @@ class TablePostProcessor:
         Returns:
             list: Flattened header names
         """
-        logger.info(f"🔧 [FLATTEN] Starting flattened headers creation")
-        logger.info(f"🔧 [FLATTEN] MultiIndex columns: {multiindex_columns}")
-        logger.info(f"🔧 [FLATTEN] Number of columns: {len(multiindex_columns)}")
+        # logger.info(f"🔧 [FLATTEN] Starting flattened headers creation")
+        # logger.info(f"🔧 [FLATTEN] MultiIndex columns: {multiindex_columns}")
+        # logger.info(f"🔧 [FLATTEN] Number of columns: {len(multiindex_columns)}")
         
         flattened_headers = []
         
         for i, col_tuple in enumerate(multiindex_columns):
-            logger.info(f"🔧 [FLATTEN] Processing column {i}: {col_tuple}")
+            # logger.info(f"🔧 [FLATTEN] Processing column {i}: {col_tuple}")
             
             # Get all non-"Header" parts of the column tuple
             meaningful_parts = [str(part) for part in col_tuple if str(part) != "Header" and str(part) != "nan"]
-            logger.info(f"🔧 [FLATTEN] Meaningful parts: {meaningful_parts}")
+            # logger.info(f"🔧 [FLATTEN] Meaningful parts: {meaningful_parts}")
             
             if len(meaningful_parts) == 0:
                 # All parts are "Header" or nan, use a default name
                 flattened_name = "Column"
-                logger.info(f"🔧 [FLATTEN] No meaningful parts, using default: {flattened_name}")
+                # logger.info(f"🔧 [FLATTEN] No meaningful parts, using default: {flattened_name}")
             elif len(meaningful_parts) == 1:
                 # Only one meaningful part (vertical merge case), use as is
                 flattened_name = meaningful_parts[0]
-                logger.info(f"🔧 [FLATTEN] Single meaningful part (vertical merge): {flattened_name}")
+                # logger.info(f"🔧 [FLATTEN] Single meaningful part (vertical merge): {flattened_name}")
             else:
                 # Multiple meaningful parts (horizontal merge case)
                 # Create acronyms for all parts EXCEPT the last one (leaf level)
@@ -161,17 +161,17 @@ class TablePostProcessor:
                 for j, part in enumerate(meaningful_parts[:-1]):
                     acronym = self.create_acronym(part)
                     acronym_parts.append(acronym)
-                    logger.info(f"🔧 [FLATTEN] Part {j} '{part}' -> acronym '{acronym}'")
+                    # logger.info(f"🔧 [FLATTEN] Part {j} '{part}' -> acronym '{acronym}'")
                 
                 # Keep the last part (leaf level) as-is
                 acronym_parts.append(meaningful_parts[-1])
-                logger.info(f"🔧 [FLATTEN] Final part (kept as-is): {meaningful_parts[-1]}")
+                # logger.info(f"🔧 [FLATTEN] Final part (kept as-is): {meaningful_parts[-1]}")
                 
                 flattened_name = " ".join(acronym_parts)
-                logger.info(f"🔧 [FLATTEN] Combined flattened name: {flattened_name}")
+                # logger.info(f"🔧 [FLATTEN] Combined flattened name: {flattened_name}")
             
             flattened_headers.append(flattened_name)
-            logger.info(f"🔧 [FLATTEN] Added to flattened headers: {flattened_name}")
+            # logger.info(f"🔧 [FLATTEN] Added to flattened headers: {flattened_name}")
         
         logger.info(f"✅ [FLATTEN] Final flattened headers: {flattened_headers}")
         return flattened_headers
