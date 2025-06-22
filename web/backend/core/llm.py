@@ -4,13 +4,14 @@ import numpy as np
 import re
 from .utils import read_file
 from .prompt import DECOMPOSER_PROMPT, ROW_HANDLER_PROMPT, COL_HANDLER_PROMPT, FEATURE_ANALYSIS_PROMPT, SCHEMA_ANALYSIS_PROMPT
-from .config import get_next_api_key, LLM_MODEL
-from langchain_google_genai import ChatGoogleGenerativeAI
+from .config import get_next_llm_instance, LLM_MODEL
 
 def get_llm_instance():
-    """Creates and returns an instance of the ChatGoogleGenerativeAI LLM."""
-    api_key = get_next_api_key()
-    return ChatGoogleGenerativeAI(model=LLM_MODEL, google_api_key=api_key, temperature=0)
+    """
+    Returns a pre-loaded LLM instance from the thread-safe pool.
+    This eliminates the need to create new instances and reduces lock contention.
+    """
+    return get_next_llm_instance()
 
 def get_schema(excel_content, feature_name_content):
     llm = get_llm_instance()

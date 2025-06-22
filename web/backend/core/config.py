@@ -3,37 +3,98 @@ import logging
 from pathlib import Path
 import dotenv
 import threading
-from itertools import cycle
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 # Load environment variables from the same directory as this file
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 dotenv.load_dotenv(dotenv_path=env_path)
 
-# --- LLM Configuration with Key Cycling ---
+# --- LLM Configuration with Pre-loaded Pool ---
 
 # Find all GOOGLE_API_KEY_n variables in the environment
 api_keys = [
-    key for key in [os.getenv(f"GOOGLE_API_KEY_{i+1}") for i in range(10)] # Check for up to 10 keys
+    key for key in [os.getenv(f"GOOGLE_API_KEY_{i+1}") for i in range(4)] # Check for up to 4 keys
     if key is not None and key.strip() != ""
 ]
 
 if not api_keys:
     raise ValueError("At least one GOOGLE_API_KEY_n environment variable is required (e.g., GOOGLE_API_KEY_1)")
 
-# Create a thread-safe, cycling iterator for the API keys
-_api_key_cycler = cycle(api_keys)
-_api_key_lock = threading.Lock()
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash-preview-04-17")
+
+# Pre-load all LLM instances at startup to avoid threading issues
+_llm_pool = []
+_llm_index = 0
+_llm_lock = threading.Lock()
+_pool_initialized = False
+
+def _initialize_llm_pool():
+    """
+    Initialize the LLM pool with all available API keys.
+    This is called once during module import.
+    """
+    global _llm_pool, _pool_initialized
+    
+    if _pool_initialized:
+        return
+        
+    try:
+        for i, api_key in enumerate(api_keys):
+            llm_instance = ChatGoogleGenerativeAI(
+                model=LLM_MODEL, 
+                google_api_key=api_key, 
+                temperature=0
+            )
+            _llm_pool.append(llm_instance)
+            logging.getLogger(__name__).info(f"Initialized LLM instance {i+1}/{len(api_keys)}")
+        
+        _pool_initialized = True
+        logging.getLogger(__name__).info(f"LLM pool initialized with {len(_llm_pool)} instances")
+        
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Failed to initialize LLM pool: {e}")
+        raise
+
+def get_next_llm_instance():
+    """
+    Returns the next LLM instance from the pre-loaded pool in a thread-safe manner.
+    Uses round-robin selection with minimal lock time.
+    
+    Returns:
+        ChatGoogleGenerativeAI: A pre-initialized LLM instance
+    """
+    global _llm_index
+    
+    if not _pool_initialized:
+        _initialize_llm_pool()
+    
+    if not _llm_pool:
+        raise RuntimeError("No LLM instances available in pool")
+    
+    # Use atomic operation with minimal lock time
+    with _llm_lock:
+        current_index = _llm_index
+        _llm_index = (_llm_index + 1) % len(_llm_pool)
+    
+    return _llm_pool[current_index]
 
 def get_next_api_key():
     """
-    Safely returns the next API key from the list in a thread-safe manner.
+    DEPRECATED: Use get_next_llm_instance() instead.
+    This function is kept for backward compatibility but should not be used.
     """
-    with _api_key_lock:
-        return next(_api_key_cycler)
+    logging.getLogger(__name__).warning("get_next_api_key() is deprecated. Use get_next_llm_instance() instead.")
+    
+    # Fallback to simple round-robin API key selection
+    global _llm_index
+    with _llm_lock:
+        current_index = _llm_index
+        _llm_index = (_llm_index + 1) % len(api_keys)
+    
+    return api_keys[current_index]
 
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash-preview-04-17")
-# Note: GOOGLE_API_KEY is now managed by get_next_api_key()
-# The old GOOGLE_API_KEY constant is deprecated.
+# Initialize the pool when module is imported
+_initialize_llm_pool()
 
 # --- End LLM Configuration ---
 

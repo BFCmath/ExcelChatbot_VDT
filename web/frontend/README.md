@@ -62,12 +62,26 @@ Once you've uploaded an Excel file, try these example queries:
 
 ## File Structure
 
+The frontend is organized into logical modules to separate concerns.
+
 ```
 web/frontend/
-├── index.html          # Main HTML file
-├── styles.css          # CSS styles and animations
-├── script.js           # JavaScript functionality
-└── README.md          # This file
+├── index.html              # Main HTML file for the application
+├── styles.css              # All CSS styles and animations
+├── js/                     # Directory for JavaScript files
+│   ├── app.js              # Main application logic, initialization
+│   ├── api.js              # Functions for communicating with the backend API
+│   ├── conversation.js     # Manages conversation state and UI
+│   ├── upload.js           # Handles file uploads (drag-drop, validation)
+│   ├── table.js            # Logic for rendering and managing data tables
+│   ├── plotting.js         # Functions for handling and displaying plots
+│   ├── messages.js         # Manages the display of chat messages
+│   ├── events.js           # All event listeners (clicks, submits, etc.)
+│   ├── dom.js              # DOM manipulation utilities
+│   ├── utils.js            # General utility functions
+│   ├── config.js           # API configuration and global state
+│   └── ...                 # Other JS files
+└── README.md               # This file
 ```
 
 ## Features Overview
@@ -152,9 +166,9 @@ Edit the CSS variables in `styles.css`:
 ```
 
 ### Modifying API URL
-Change the API base URL in `script.js`:
+Change the API base URL in `js/config.js`:
 ```javascript
-const API_BASE_URL = 'http://your-api-server:8000';
+const API_BASE_URL = 'http://localhost:5001';
 ```
 
 ## License
