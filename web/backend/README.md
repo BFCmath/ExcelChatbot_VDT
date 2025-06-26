@@ -1,148 +1,94 @@
-# Excel Chatbot Backend API
+# Excel Chatbot Backend
 
-A production-ready FastAPI backend for a stateful, conversation-based Excel Chatbot. It handles file uploads, natural language queries, data analysis, and dynamic chart generation.
+This directory contains the complete backend server for the Excel Chatbot application. It is a robust, security-first API built with FastAPI that empowers users to query complex Excel files using natural language.
 
-## ✨ Features
+The backend is designed to be completely decoupled from the frontend, handling all the heavy lifting of file processing, query understanding, data retrieval, and visualization generation.
 
-- **Stateful Conversation Management**: Manages multiple, isolated user conversations with persistent context for each session.
-- **Secure File Handling**: Robust validation for file uploads (type, size, count), sanitization of filenames, and proper error handling.
-- **Asynchronous Processing**: Built with FastAPI and `async` operations for high-performance, non-blocking I/O.
-- **Interactive Data Visualization**:
-    - Dual-input plotting system supporting both flat and hierarchical data.
-    - Generates interactive **Bar charts** and **Sunburst charts**.
-    - Intelligent filtering to automatically remove summary/total columns.
-    - Outputs self-contained HTML for easy embedding in web frontends.
-- **Structured Logging**: Comprehensive logging for easy debugging and monitoring.
-- **Health Check Endpoint**: A `/health` endpoint to monitor the API's status and activity.
+## Core Architecture
 
-## 🚀 Getting Started
+The backend architecture is designed around a secure, multi-agent pipeline that processes user requests without ever exposing sensitive data to external services. The system first understands the *structure* of an Excel file and then uses that metadata context to interpret and execute a user's query locally.
+
+This unified framework integrates query enrichment, multi-file routing, and a schema-based execution engine into a single, cohesive system.
+
+![Final Unified Architecture](../../image/README_2025-06-26-18-56-07.png)
+
+*The final, unified architecture of the Excel Chatbot framework. It integrates query enrichment, multi-file routing, and the schema-based single-file execution engine into a cohesive, end-to-end system.*
+
+The main components are:
+- **FastAPI Application (`app.py`)**: The main web server that defines all API endpoints, handles request validation, and manages the application lifecycle.
+- **Session Manager (`managers.py`)**: The `ConversationManager` creates and manages isolated, stateful conversation sessions for each user, ensuring data privacy between concurrent users.
+- **Alias Manager (`alias_manager.py`)**: Manages a global, system-wide alias file, allowing the chatbot to understand domain-specific jargon and abbreviations.
+- **Core Engine (`core/`)**: The "brain" of the application. This is a self-contained module that performs the complex tasks of schema extraction, LLM-based query decomposition, and deterministic data retrieval. See the [Core Engine README](./core/README.md) for a detailed breakdown.
+
+## Key Features
+
+- **Security-First Design**: The core principle. Sensitive data from Excel files is **never** sent to an external service. The LLM only ever interacts with the file's structural metadata.
+- **Dynamic & Template-Free**: The system can intelligently parse and process any complex, hierarchical Excel matrix table without needing pre-defined templates or custom code.
+- **Multi-Agent LLM Pipeline**: Utilizes a chain of specialized LLM agents for highly accurate query decomposition, routing, and execution, significantly outperforming a single-prompt approach.
+- **Multi-File Context**: A sophisticated routing agent can understand queries that span multiple documents, breaking them down and targeting the correct file(s) for a comprehensive answer.
+- **Query Enrichment**: Automatically enriches user queries with definitions from a configurable alias file, allowing the system to understand jargon, acronyms, and synonyms.
+- **On-the-Fly Plotting**: Capable of generating interactive `Plotly` charts (Sunburst and Bar) from the results of a query, turning raw data into insights.
+- **Asynchronous by Default**: Built on FastAPI and `asyncio` to handle long-running I/O and processing tasks without blocking the server, ensuring a responsive user experience.
+
+## Getting Started
+
+Follow these instructions to set up and run the backend server on your local machine.
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.9+
+- `pip` for package management
 
-### Installation
+### 1. Installation
 
-1.  Navigate to the `web/backend` directory.
-2.  Install the required Python packages:
-    ```bash
-    pip install -r ../../requirements.txt
-    ```
-
-### Running the Server
-
-To start the development server with live reloading:
+First, clone the repository to your local machine. From the **project root directory** (`xlsx_chatbot/`), install the required Python packages:
 
 ```bash
-uvicorn app:app --reload --host 0.0.0.0 --port 5001
+pip install -r requirements.txt
 ```
 
-The API will be available at `http://localhost:5001`.
+### 2. Environment Variables
 
-## 🏛️ Architecture
+The core engine requires Google API keys to interact with the Gemini LLM.
 
-The backend is designed for modularity and scalability:
+1.  Navigate to the core engine directory: `cd web/backend/core`
+2.  Make a copy of the environment variable template file. Rename `.txt.env` to `.env`:
+    ```bash
+    cp .txt.env .env
+    ```
+3.  Open the newly created `.env` file and add your Google API keys. You can add one or more keys; the system will automatically load-balance requests across them.
 
-- **State Management**: A `ConversationManager` creates and tracks `Conversation` objects. Each `Conversation` has a unique ID and its own `MultiFileProcessor` instance, ensuring that file metadata and context are isolated between conversations.
-- **In-Memory State**: All conversation state is currently stored in memory and will be reset if the server restarts.
-- **Async Processing**: File uploads and query processing use `async` operations to prevent blocking the server's event loop.
-- **Logging**: Comprehensive logging with both file and console output for debugging and monitoring.
+    ```dotenv
+    # .env
+    GOOGLE_API_KEY_1="YOUR_API_KEY_HERE"
+    GOOGLE_API_KEY_2="ANOTHER_API_KEY_HERE"
+    # ... and so on
+    LLM_MODEL="gemini-2.5-flash-preview-04-17"
+    ```
 
----
+### 3. Running the Server
 
-## API Endpoints
+Once the dependencies are installed and the environment variables are set, navigate back to the `web/backend` directory and run the server using `uvicorn`.
 
-### 1. Health Check
+```bash
+# Make sure you are in the web/backend directory
+cd web/backend
 
-- **Endpoint**: `GET /health`
-- **Description**: Returns API health status and metrics.
-- **Response Body**:
-  ```json
-  {
-    "status": "healthy",
-    "version": "1.0.0",
-    "active_conversations": 5
-  }
-  ```
+uvicorn app:app --host 127.0.0.1 --port 5001 --reload
+```
+- `--reload`: Enables hot-reloading, so the server will automatically restart when you make code changes.
 
-### 2. Create a New Conversation
+The API server should now be running and accessible at `http://127.0.0.1:5001`. You can view the auto-generated API documentation at `http://127.0.0.1:5001/docs`.
 
-- **Endpoint**: `POST /conversations`
-- **Description**: Initializes a new, empty conversation session.
-- **Response Body**:
-  ```json
-  {
-    "conversation_id": "a-unique-uuid-string"
-  }
-  ```
+## API Overview
 
-### 3. Upload Files to a Conversation
+The backend exposes a RESTful API for interaction. The main endpoints include:
 
-- **Endpoint**: `POST /conversations/<conversation_id>/upload`
-- **Description**: Uploads one or more Excel (`.xlsx`, `.xls`) files to the specified conversation. Files are validated and processed immediately to extract their metadata and structure.
-- **Request**: `multipart/form-data` with one or more files under the `files` key.
-- **Response Body (Success)**:
-  ```json
-  {
-    "message": "Successfully uploaded 2 files.",
-    "uploaded_files": ["sales_data.xlsx", "customer_data.xlsx"],
-    "all_processed_files_in_conversation": ["sales_data.xlsx", "customer_data.xlsx"]
-  }
-  ```
+-   `POST /conversations`: Starts a new, isolated user session.
+-   `POST /conversations/{conversation_id}/upload`: Uploads one or more Excel files to a specific session.
+-   `POST /conversations/{conversation_id}/query`: Submits a natural language query to a session for processing.
+-   `GET /alias/status`: Checks the status of the global alias file.
+-   `POST /alias/upload`: Uploads a new system-wide alias file.
+-   `POST /plot/generate`: Generates interactive charts from structured JSON data.
 
-### 4. Query within a Conversation
-
-- **Endpoint**: `POST /conversations/<conversation_id>/query`
-- **Description**: Sends a natural language query to be executed against the files within the specified conversation.
-- **Request Body**:
-  ```json
-  {
-    "query": "What is the total revenue from all sales?"
-  }
-  ```
-- **Response Body (Success)**: A JSON object where keys are the sub-query and filename, and values are the extracted data in JSON format.
-  ```json
-  {
-    "sales_data.xlsx - total revenue": "[{\"total_revenue\": 500000}]"
-  }
-  ```
-
-### 5. List Processed Files in a Conversation
-
-- **Endpoint**: `GET /conversations/<conversation_id>/files`
-- **Description**: Retrieves a list of the filenames that have been successfully uploaded and processed for the specified conversation.
-- **Response Body**:
-  ```json
-  {
-    "processed_files": ["sales_data.xlsx"]
-  }
-  ```
-
-### 6. Generate Interactive Charts
-
-- **Endpoint**: `POST /plot/generate`
-- **Description**: Generates interactive charts from structured JSON data. Automatically selects chart type based on data structure and filters out summary columns.
-- **Request Body**: (See original document for detailed structure)
-- **Response Body (Success)**:
-  ```json
-  {
-    "success": true,
-    "plot_types": ["bar", "sunburst"],
-    "plots": {
-      "bar_chart": {
-        "title": "Bar Chart: example.xlsx",
-        "html_content": "<html>...</html>"
-      },
-      "column_first": {
-        "title": "example.xlsx (Column-first Hierarchy)",
-        "html_content": "<html>...</html>"
-      },
-      "row_first": {
-        "title": "example.xlsx (Row-first Hierarchy)", 
-        "html_content": "<html>...</html>"
-      }
-    },
-    "message": "Successfully created charts.",
-    "error": null
-  }
-  ```
+For a complete and interactive list of all endpoints and their schemas, please refer to the auto-generated Swagger documentation at the `/docs` endpoint when the server is running.

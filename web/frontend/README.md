@@ -1,176 +1,68 @@
 # Excel Chatbot Frontend
 
-A modern, GPT-like web interface for chatting with Excel files. This frontend connects to the FastAPI backend to provide a seamless chat experience for analyzing Excel data.
+This directory contains the complete frontend for the Excel Chatbot. It is a modern, responsive Single-Page Application (SPA) built with vanilla JavaScript, HTML, and CSS. It provides a rich, interactive user interface for uploading Excel files, asking complex questions, and visualizing the results through dynamic, hierarchical tables and charts.
 
-## Features
+The frontend is completely decoupled from the backend, communicating through a well-defined REST API. This separation allows for independent development, deployment, and scaling of the user interface.
 
-- 🎨 **Modern GPT-like Interface** - Clean, dark theme with smooth animations
-- 💬 **Multi-Conversation Support** - Create and manage multiple chat sessions
-- 📊 **Excel File Upload** - Drag-and-drop or browse to upload Excel files
-- 🔄 **Real-time Chat** - Send queries and get instant responses
-- 💾 **Persistent Conversations** - Conversations saved in browser localStorage
-- 📱 **Responsive Design** - Works on desktop and mobile devices
-- ⚡ **Fast & Lightweight** - Pure HTML/CSS/JavaScript, no frameworks
+## Live Demo
 
-## Quick Start
+A complete demonstration of the application's features, including the interactive frontend, can be viewed on YouTube:
 
-1. **Start the Backend Server**
-   ```bash
-   cd ../backend
-   python -m uvicorn app:app --reload --host 0.0.0.0 --port 5001
-   ```
+[![Excel Chatbot Demo](https://img.youtube.com/vi/c8FGzOZ9wro/0.jpg)](https://www.youtube.com/watch?v=c8FGzOZ9wro)
 
-2. **Open the Frontend**
-   Simply open `index.html` in your web browser, or use a simple HTTP server:
-   ```bash
-   # Using Python
-   python -m http.server 3000
-   
-   # Using Node.js
-   npx serve .
-   
-   # Using PHP
-   php -S localhost:3000
-   ```
+[Watch the full demo on YouTube](https://www.youtube.com/watch?v=c8FGzOZ9wro)
 
-3. **Start Chatting**
-   - Click "New Conversation" to create a chat session
-   - Upload an Excel file using the upload button
-   - Start asking questions about your data!
+## Core Architecture
 
-## Usage Examples
+The frontend is designed as a modular SPA. A single `index.html` file serves as the application's skeleton, and all UI updates are handled dynamically by JavaScript, which manipulates the DOM without requiring page reloads.
 
-Once you've uploaded an Excel file, try these example queries:
+-   **Modular Design**: The JavaScript code is organized into separate files (modules) in the `js/` directory, each with a specific responsibility (e.g., API communication, state management, DOM manipulation). These modules coordinate by attaching their public functions to the global `window` object.
+-   **Client-Side Processing**: The application performs significant data processing on the client side. The innovative table flattening and filtering logic is implemented in JavaScript, allowing for instantaneous table interactions without needing to re-fetch data from the backend.
+-   **State Management**: A central `config.js` module manages the application's global state, including conversation history and cached table data, which is persisted in the browser's `localStorage`.
 
-### Basic Data Exploration
-- "What columns are available in this file?"
-- "How many rows does this dataset have?"
-- "Show me the first 5 rows"
-- "What's the summary statistics for this data?"
-
-### Data Analysis
-- "What's the total sum of column A?"
-- "Find the average value in column B"
-- "Show me all rows where sales > 1000"
-- "Which product has the highest revenue?"
-
-### Advanced Queries
-- "Create a pivot table grouped by category"
-- "Find correlations between columns"
-- "Show me the top 10 customers by revenue"
-- "What are the monthly trends in this data?"
+---
 
 ## File Structure
 
-The frontend is organized into logical modules to separate concerns.
+### Key Files
 
-```
-web/frontend/
-├── index.html              # Main HTML file for the application
-├── styles.css              # All CSS styles and animations
-├── js/                     # Directory for JavaScript files
-│   ├── app.js              # Main application logic, initialization
-│   ├── api.js              # Functions for communicating with the backend API
-│   ├── conversation.js     # Manages conversation state and UI
-│   ├── upload.js           # Handles file uploads (drag-drop, validation)
-│   ├── table.js            # Logic for rendering and managing data tables
-│   ├── plotting.js         # Functions for handling and displaying plots
-│   ├── messages.js         # Manages the display of chat messages
-│   ├── events.js           # All event listeners (clicks, submits, etc.)
-│   ├── dom.js              # DOM manipulation utilities
-│   ├── utils.js            # General utility functions
-│   ├── config.js           # API configuration and global state
-│   └── ...                 # Other JS files
-└── README.md               # This file
-```
+-   `index.html`: The main and only HTML file. It defines the layout structure and includes all necessary CSS and JavaScript files.
+-   `styles.css`: A single, comprehensive stylesheet that provides all the visual styling and responsiveness for the application.
+-   `start.py`: A simple Python web server for local development. Its primary role is to serve the static frontend files and add the necessary CORS headers to allow communication with the backend API.
 
-## Features Overview
+### JavaScript Modules (`js/`)
 
-### Conversation Management
-- **New Conversations**: Click the "+" button to start fresh
-- **Switch Conversations**: Click on any conversation in the sidebar
-- **Auto-Save**: Conversations are automatically saved to localStorage
-- **Smart Titles**: Conversations are automatically titled based on uploaded files
+-   `config.js`: The central configuration and state management hub. Holds the API URL, conversation history, and a cache for table data.
+-   `app.js`: The main entry point. It orchestrates the application's startup sequence.
+-   `dom.js`: Centralizes all direct DOM manipulations, such as showing/hiding elements, displaying notifications, and managing element caches.
+-   `events.js`: Sets up all global event listeners (clicks, key presses, drag-and-drop) and delegates actions to the appropriate modules.
+-   `conversation.js`: Manages the lifecycle of conversations, including creation, switching, and persistence to `localStorage`.
+-   `api.js`: Handles sending user queries to the backend API and receiving the results.
+-   `upload.js` & `alias.js`: Manage the UI and logic for uploading user Excel files and the system-wide alias file.
+-   `messages.js`: Responsible for rendering content in the chat window, including the complex HTML for data tables from API responses.
+-   `table.js`: Manages the rendering of and interaction with the data tables, including setting up controls for flattening and filtering.
+-   `flatten.js`: A client-side replication of the backend's sophisticated header-flattening algorithm. This allows for instant, interactive transformation of hierarchical tables.
+-   `plotting.js`: Manages the entire data visualization workflow, from preparing data and sending it to the backend's `/plot/generate` endpoint to rendering the returned charts in an interactive modal.
+-   `utils.js`: A collection of reusable helper functions.
+-   `flatten_debug.js`: An advanced, in-browser tool for debugging the complex table flattening logic.
 
-### File Upload
-- **Drag & Drop**: Drag Excel files directly onto the upload area
-- **File Validation**: Only .xlsx and .xls files are accepted
-- **Size Limits**: Maximum file size of 10MB
-- **Progress Tracking**: Visual upload progress with animations
-- **Multiple Files**: Each conversation can handle multiple Excel files
+---
 
-### Chat Interface
-- **Real-time Messaging**: Instant message sending and receiving
-- **Typing Indicators**: Shows when the AI is processing your query
-- **Message Formatting**: Supports code blocks and structured data
-- **Auto-scroll**: Automatically scrolls to new messages
-- **Keyboard Shortcuts**: Press Enter to send, Shift+Enter for new line
+## How to Run
 
-### User Experience
-- **Loading States**: Clear feedback during API calls
-- **Error Handling**: Graceful error messages with helpful context
-- **Success Notifications**: Confirmation messages for actions
-- **Responsive Layout**: Adapts to different screen sizes
-- **Dark Theme**: Modern, eye-friendly dark interface
+The frontend is designed to be run with a simple Python HTTP server.
 
-## API Integration
+1.  **Navigate to the `web/frontend` directory.**
+    ```bash
+    cd web/frontend
+    ```
 
-The frontend communicates with the FastAPI backend using these endpoints:
+2.  **Start the server.**
+    ```bash
+    python start.py
+    ```
+    This will serve the application on `http://localhost:8000`.
 
-- `POST /conversations` - Create new conversation
-- `POST /upload` - Upload Excel files
-- `POST /conversations/{id}/query` - Send chat messages
-- `GET /health` - Health check
+3.  **Access the application** by opening `http://localhost:8000` in your web browser.
 
-## Browser Compatibility
-
-- ✅ Chrome 90+
-- ✅ Firefox 88+
-- ✅ Safari 14+
-- ✅ Edge 90+
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"Failed to create conversation"**
-   - Make sure the backend server is running on port 5001
-   - Check browser console for CORS errors
-
-2. **File upload fails**
-   - Ensure file is .xlsx or .xls format
-   - Check file size is under 10MB
-   - Verify backend server is accessible
-
-3. **Messages not sending**
-   - Upload an Excel file first
-   - Check internet connection
-   - Verify backend server is running
-
-### Development Tips
-
-- Open browser Developer Tools (F12) to see console logs
-- Check Network tab for API request/response details
-- Use the browser's Application tab to view localStorage data
-
-## Customization
-
-### Changing Colors
-Edit the CSS variables in `styles.css`:
-```css
-:root {
-    --primary-color: #10a37f;  /* Main accent color */
-    --bg-color: #1a1a1a;       /* Background color */
-    --text-color: #ffffff;     /* Text color */
-}
-```
-
-### Modifying API URL
-Change the API base URL in `js/config.js`:
-```javascript
-const API_BASE_URL = 'http://localhost:5001';
-```
-
-## License
-
-This project is part of the Excel Chatbot application. 
+> **Note:** For the application to function, the backend server must also be running, as the frontend will make API calls to it (by default at `http://localhost:5001`).
